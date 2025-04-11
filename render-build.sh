@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
 
-# Install dependencies
-echo "Installing dependencies..."
-npm ci 
+# Clean node_modules to ensure we don't have platform-specific issues
+echo "Cleaning node_modules..."
+rm -rf node_modules
 
-# Make vite binary executable directly in Render environment
+# Install dependencies with regular npm install (not ci)
+echo "Installing dependencies..."
+npm install
+
+# Make vite binary executable
 echo "Setting executable permissions on vite..."
 if [ -f "./node_modules/.bin/vite" ]; then
   chmod +x ./node_modules/.bin/vite
 fi
 
-# Run build using npm script to avoid permission issues
+# Run build
 echo "Running build..."
 npm run build
 

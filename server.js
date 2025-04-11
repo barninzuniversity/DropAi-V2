@@ -1,3 +1,4 @@
+// Using ES module syntax
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
