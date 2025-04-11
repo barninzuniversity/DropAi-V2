@@ -1,0 +1,30 @@
+# DropAI Shop Project Dependencies
+
+# This project uses npm for dependency management. To install all dependencies, run:
+# npm install
+
+# Main Dependencies:
+# - React: ^18.2.0 (JavaScript library for building user interfaces)
+# - React DOM: ^18.2.0 (React package for working with the DOM)
+# - React Router DOM: ^6.16.0 (Routing library for React)
+# - Framer Motion: ^10.16.4 (Animation library for React)
+# - Zustand: ^4.4.1 (State management library)
+# - EmailJS Browser: ^4.4.1 (Email sending service)
+# - React Icons: ^4.11.0 (Icon library for React)
+# - Swiper: ^10.3.0 (Touch slider library)
+# - Axios: ^1.5.0 (HTTP client for making requests)
+
+# Development Dependencies:
+# - Vite: ^4.4.9 (Build tool and development server)
+# - Tailwind CSS: ^3.3.3 (Utility-first CSS framework)
+# - PostCSS: ^8.4.29 (Tool for transforming CSS with JavaScript)
+# - Autoprefixer: ^10.4.15 (PostCSS plugin to parse CSS and add vendor prefixes)
+
+# To start the development server:
+# npm run dev
+
+# To build for production:
+# npm run build
+
+# To preview the production build:
+# npm run preview

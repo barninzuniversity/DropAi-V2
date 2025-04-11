@@ -1,0 +1,85 @@
+<div
+  style="
+    font-family: 'Inter', system-ui, sans-serif, Arial;
+    font-size: 14px;
+    color: #333;
+    padding: 14px 8px;
+    background-color: #f5f5f5;
+  "
+>
+  <div style="max-width: 600px; margin: auto; background-color: #fff">
+    <div style="border-top: 6px solid #0ea5e9; padding: 16px">
+      <a
+        style="text-decoration: none; outline: none; margin-right: 8px; vertical-align: middle"
+        href="https://dropai.com"
+        target="_blank"
+      >
+        <span style="font-size: 24px; font-weight: bold; color: #0ea5e9;">DropAI</span>
+      </a>
+      <span
+        style="
+          font-size: 16px;
+          vertical-align: middle;
+          border-left: 1px solid #333;
+          padding-left: 8px;
+        "
+      >
+        <strong>Check Out This Product</strong>
+      </span>
+    </div>
+    <div style="padding: 0 16px 24px">
+      <p>Someone thought you might be interested in this product from DropAI:</p>
+      
+      <div style="margin-top: 24px; padding: 16px; background-color: #f0f9ff; border-radius: 4px;">
+        <div style="display: flex; flex-direction: column;">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <img 
+              src="{{product_image}}" 
+              alt="{{product_name}}" 
+              style="max-width: 100%; height: auto; max-height: 300px; border-radius: 4px;"
+            />
+          </div>
+          <div>
+            <h2 style="margin-top: 0; margin-bottom: 8px; color: #0369a1;">{{product_name}}</h2>
+            <p style="font-size: 18px; font-weight: bold; color: #0ea5e9; margin-top: 0; margin-bottom: 16px;">${{product_price}}</p>
+            <div style="margin-bottom: 16px;">
+              <p style="margin-top: 0; margin-bottom: 8px;">{{product_description}}</p>
+            </div>
+            
+            {{#sender_message}}
+            <div style="margin-top: 16px; padding: 12px; background-color: #e0f2fe; border-radius: 4px; font-style: italic;">
+              <p style="margin: 0;">"{{sender_message}}"</p>
+            </div>
+            {{/sender_message}}
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-top: 24px; text-align: center;">
+        <a 
+          href="{{product_url}}"
+          style="
+            display: inline-block;
+            background-color: #0ea5e9;
+            color: white;
+            font-weight: 500;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+          "
+        >
+          View Product
+        </a>
+      </div>
+    </div>
+    <div style="padding: 24px 16px; text-align: center; background-color: #f0f9ff; margin-top: 24px;">
+      <p style="margin-top: 0;">Discover more AI-powered products at <a href="https://dropai.com" style="color: #0ea5e9; text-decoration: none;">DropAI</a></p>
+    </div>
+  </div>
+  <div style="max-width: 600px; margin: auto">
+    <p style="color: #999; text-align: center; font-size: 12px; margin-top: 16px;">
+      This email was sent to {{to_email}} because someone wanted to share this product with you.<br>
+      © DropAI. All rights reserved.
+    </p>
+  </div>
+</div>
