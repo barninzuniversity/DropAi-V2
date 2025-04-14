@@ -156,7 +156,7 @@ const AdminPage = () => {
                     </div>
                   </motion.div>
                   
-                  {/* Total Revenue (mock data) */}
+                  {/* Total Revenue */}
                   <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -166,7 +166,7 @@ const AdminPage = () => {
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="text-gray-500 text-sm font-medium mb-1">Total Revenue</p>
-                        <h3 className="text-2xl font-bold text-gray-900">$12,845.00</h3>
+                        <h3 className="text-2xl font-bold text-gray-900">$0.00</h3>
                       </div>
                       <div className="p-3 bg-purple-500 bg-opacity-20 rounded-full">
                         <FiDollarSign className="text-purple-700 text-xl" />

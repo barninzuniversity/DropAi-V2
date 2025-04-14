@@ -1,41 +1,13 @@
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
-import { FiAward, FiTrendingUp, FiUsers, FiTarget, FiCpu, FiShield } from 'react-icons/fi'
+import { FiAward, FiTrendingUp, FiUsers, FiTarget, FiCpu, FiShield, FiMapPin } from 'react-icons/fi'
 
 const AboutPage = () => {
   // Refs for scroll animations
   const [heroRef, heroInView] = useInView({ threshold: 0.1, triggerOnce: true })
   const [missionRef, missionInView] = useInView({ threshold: 0.1, triggerOnce: true })
   const [featuresRef, featuresInView] = useInView({ threshold: 0.1, triggerOnce: true })
-  const [teamRef, teamInView] = useInView({ threshold: 0.1, triggerOnce: true })
-
-  // Team members data
-  const teamMembers = [
-    {
-      name: 'Alex Johnson',
-      role: 'Founder & CEO',
-      image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=256&q=80',
-      bio: 'Former AI researcher with a passion for e-commerce and customer experience.'
-    },
-    {
-      name: 'Sarah Chen',
-      role: 'CTO',
-      image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=256&q=80',
-      bio: 'Machine learning expert specializing in recommendation systems and personalization.'
-    },
-    {
-      name: 'Marcus Williams',
-      role: 'Head of Product',
-      image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=256&q=80',
-      bio: 'E-commerce veteran with over 10 years of experience in product management.'
-    },
-    {
-      name: 'Leila Patel',
-      role: 'Head of Operations',
-      image: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=256&q=80',
-      bio: 'Supply chain expert who has optimized logistics for major e-commerce platforms.'
-    }
-  ]
+  const [locationRef, locationInView] = useInView({ threshold: 0.1, triggerOnce: true })
 
   // AI features
   const aiFeatures = [
@@ -177,47 +149,43 @@ const AboutPage = () => {
         </div>
       </section>
 
-      {/* Team Section */}
+      {/* Location Section */}
       <section className="py-20">
         <div className="container">
           <motion.div
-            ref={teamRef}
+            ref={locationRef}
             initial={{ opacity: 0, y: 20 }}
-            animate={teamInView ? { opacity: 1, y: 0 } : {}}
+            animate={locationInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl font-bold mb-4">Meet Our Team</h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              We're a diverse group of experts in AI, e-commerce, and supply chain management,
-              united by our passion for creating the future of online shopping.
-            </p>
+            <h2 className="text-3xl font-bold mb-4">Our Location</h2>
+            <div className="flex items-center justify-center mb-8">
+              <FiMapPin className="text-xl text-primary-600 mr-2" />
+              <p className="text-lg text-gray-600">
+                Jemmel, Monastir, Tunisia
+              </p>
+            </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {teamMembers.map((member, index) => (
-              <motion.div
-                key={member.name}
-                initial={{ opacity: 0, y: 20 }}
-                animate={teamInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
-              >
-                <div className="aspect-w-1 aspect-h-1">
-                  <img
-                    src={member.image}
-                    alt={member.name}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold mb-1">{member.name}</h3>
-                  <p className="text-primary-600 font-medium mb-3">{member.role}</p>
-                  <p className="text-gray-600">{member.bio}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={locationInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="rounded-xl overflow-hidden shadow-lg h-[450px] w-full"
+          >
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d51933.88551039475!2d10.732055787780769!3d35.627158482861174!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x130275759ac9d10d%3A0x698e3915c424ad1a!2sJemmal%2C%20Tunisia!5e0!3m2!1sen!2sus!4v1653893061364!5m2!1sen!2sus"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen=""
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="DropAI Location in Jemmel, Monastir, Tunisia"
+              aria-label="Google Maps showing DropAI location in Jemmel, Monastir, Tunisia"
+            ></iframe>
+          </motion.div>
         </div>
       </section>
     </div>

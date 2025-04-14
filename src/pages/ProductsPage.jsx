@@ -130,6 +130,11 @@ const ProductsPage = () => {
     setIsFilterOpen(!isFilterOpen)
   }
 
+  // Format price with TND currency
+  const formatPrice = (price) => {
+    return `${price} TND`
+  }
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -221,8 +226,8 @@ const ProductsPage = () => {
                 <h3 className="font-bold mb-3">Price Range</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600 text-sm">${filters.priceRange[0]}</span>
-                    <span className="text-gray-600 text-sm">${filters.priceRange[1]}</span>
+                    <span className="text-gray-600 text-sm">{formatPrice(filters.priceRange[0])}</span>
+                    <span className="text-gray-600 text-sm">{formatPrice(filters.priceRange[1])}</span>
                   </div>
                   <input
                     type="range"

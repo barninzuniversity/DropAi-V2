@@ -5,16 +5,28 @@ import { FiArrowLeft, FiCheck } from 'react-icons/fi'
 
 // Store
 import useCartStore from '../store/cartStore'
+import useNotificationStore from '../store/notificationStore'
 
-const CheckoutPage = () => {
+// Import the centralized price formatter utility
+import { formatPrice } from '../utils/priceFormatter'
+
+const CheckoutPage = ({ products, updateProductStock }) => {
   const navigate = useNavigate()
-  const { items, getCartTotal, clearCart } = useCartStore()
+  const { 
+    items, 
+    getCartTotal, 
+    getCartOriginalTotal,
+    getCartSavings,
+    clearCart 
+  } = useCartStore()
+  
+  const { addNotification } = useNotificationStore()
   const [isLoading, setIsLoading] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
   const [orderComplete, setOrderComplete] = useState(false)
-  // No steps needed as we only have shipping information
+  
+  // Form state
   const [formData, setFormData] = useState({
-    // Shipping Information
     firstName: '',
     lastName: '',
     email: '',
@@ -23,12 +35,15 @@ const CheckoutPage = () => {
     city: '',
     state: '',
     zipCode: '',
-    country: 'United States'
+    country: 'Tunisia'
   })
 
   useEffect(() => {
-    // Redirect to cart if cart is empty
-    if (items.length === 0 && !orderComplete) {
+    // Check if there's a completed order in session storage
+    const completedOrder = sessionStorage.getItem('orderCompleted');
+    
+    // Redirect to cart if cart is empty and no completed order
+    if (items.length === 0 && !orderComplete && !completedOrder) {
       navigate('/cart')
     }
 
@@ -40,27 +55,109 @@ const CheckoutPage = () => {
     return () => clearTimeout(timer)
   }, [items, navigate, orderComplete])
 
-  // Format price with currency symbol
-  const formatPrice = (price) => {
-    return `$${price.toFixed(2)}`
-  }
+  // Validate stock availability before checkout
+  const validateStockAvailability = () => {
+    if (!products) return { success: true, insufficientItems: [] };
+    
+    const insufficientItems = [];
+    
+    for (const item of items) {
+      const product = products.find(p => p.id === item.id);
+      
+      if (!product) {
+        insufficientItems.push({ 
+          id: item.id, 
+          name: item.name,
+          message: 'Product not found in inventory' 
+        });
+        continue;
+      }
+      
+      if (product.stock < item.quantity) {
+        insufficientItems.push({ 
+          id: item.id, 
+          name: item.name,
+          requested: item.quantity, 
+          available: product.stock,
+          message: `Only ${product.stock} units available`
+        });
+      }
+    }
+    
+    return {
+      success: insufficientItems.length === 0,
+      insufficientItems
+    };
+  };
 
-  // Calculate subtotal, shipping, and total
-  const subtotal = getCartTotal()
-  const shipping = subtotal > 100 ? 0 : 10
-  const tax = subtotal * 0.08 // 8% tax rate
-  const total = subtotal + shipping + tax
+  // Calculate prices
+  const subtotal = getCartTotal();
+  const originalSubtotal = getCartOriginalTotal();
+  const totalSavings = getCartSavings();
+  const shipping = 7; // Flat 7 TND shipping fee
+  const total = subtotal + shipping;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  // Update inventory for order items
+  const updateInventoryForOrder = (orderItems) => {
+    if (!products || !updateProductStock) return;
+    
+    orderItems.forEach(item => {
+      const product = products.find(p => p.id === item.id);
+      if (product) {
+        // Calculate new stock by subtracting quantity ordered
+        const newStock = Math.max(0, product.stock - item.quantity);
+        
+        // Update the product stock
+        updateProductStock(item.id, newStock);
+        
+        console.log(`Updated stock for ${item.name}: ${product.stock} -> ${newStock}`);
+        
+        // Show notification for low stock items
+        if (newStock < 5 && newStock > 0) {
+          addNotification({
+            type: 'info',
+            message: `Low stock alert: Only ${newStock} units of "${item.name}" remaining.`
+          });
+        } else if (newStock === 0) {
+          addNotification({
+            type: 'warning',
+            message: `"${item.name}" is now out of stock.`
+          });
+        }
+      }
+    });
+  };
+
   const handleSubmitShipping = async (e) => {
     e.preventDefault()
     setIsProcessing(true)
 
-    // Create order data
+    // Validate stock availability before processing
+    const stockValidation = validateStockAvailability();
+    
+    if (!stockValidation.success) {
+      setIsProcessing(false);
+      
+      // Display notification about insufficient stock
+      addNotification({
+        type: 'error',
+        message: 'Some items in your cart are out of stock'
+      });
+      
+      // Store insufficiency data for the cart page
+      sessionStorage.setItem('insufficientItems', JSON.stringify(stockValidation.insufficientItems));
+      
+      // Navigate back to cart
+      navigate('/cart');
+      return;
+    }
+
+    // Create order data with full price information
     const orderData = {
       customer: {
         firstName: formData.firstName,
@@ -73,9 +170,27 @@ const CheckoutPage = () => {
         zipCode: formData.zipCode,
         country: formData.country
       },
-      items: items,
+      items: items.map(item => {
+        // Ensure we have consistent price properties
+        const finalPrice = item.finalPrice || item.price;
+        const originalPrice = item.originalPrice || item.price;
+        const discountPercentage = item.discountPercentage || 0;
+        
+        return {
+          ...item,
+          finalPrice,
+          originalPrice,
+          discountPercentage,
+          itemTotal: finalPrice * item.quantity,
+          savings: originalPrice !== finalPrice ? (originalPrice - finalPrice) * item.quantity : 0
+        };
+      }),
       payment: {
         method: 'Cash on Delivery',
+        subtotal: subtotal,
+        originalSubtotal: originalSubtotal,
+        totalSavings: totalSavings,
+        shipping: shipping,
         total: total,
         status: 'Pending - Payment on Delivery'
       },
@@ -97,8 +212,20 @@ const CheckoutPage = () => {
         // We'll still complete the order even if email fails
       }
       
+      // Store order items for confirmation page
+      sessionStorage.setItem('orderItems', JSON.stringify(items));
+      
+      // Update inventory for ordered items
+      updateInventoryForOrder(items);
+      
       // Simulate order processing
       setTimeout(() => {
+        // Set order completed flag in session storage
+        sessionStorage.setItem('orderCompleted', 'true');
+        sessionStorage.setItem('orderNumber', orderData.orderNumber);
+        sessionStorage.setItem('orderDate', new Date().toLocaleDateString());
+        sessionStorage.setItem('orderTotal', total.toFixed(2));
+        
         setIsProcessing(false)
         setOrderComplete(true)
         clearCart()
@@ -106,7 +233,19 @@ const CheckoutPage = () => {
     } catch (error) {
       console.error('Order process error:', error);
       // Still complete the order even if there's an error with the email
+      // Store order items for confirmation page
+      sessionStorage.setItem('orderItems', JSON.stringify(items));
+      
+      // Update inventory for ordered items
+      updateInventoryForOrder(items);
+      
       setTimeout(() => {
+        // Set order completed flag in session storage even if there was an error
+        sessionStorage.setItem('orderCompleted', 'true');
+        sessionStorage.setItem('orderNumber', orderData.orderNumber);
+        sessionStorage.setItem('orderDate', new Date().toLocaleDateString());
+        sessionStorage.setItem('orderTotal', total.toFixed(2));
+        
         setIsProcessing(false)
         setOrderComplete(true)
         clearCart()
@@ -114,8 +253,7 @@ const CheckoutPage = () => {
     }
   }
 
-  // Only Cash on Delivery payment is supported
-
+  // Loading state
   if (isLoading) {
     return (
       <div className="pt-24 pb-16 container">
@@ -126,6 +264,7 @@ const CheckoutPage = () => {
     )
   }
 
+  // Order complete state
   if (orderComplete) {
     return (
       <div className="pt-24 pb-16">
@@ -145,21 +284,21 @@ const CheckoutPage = () => {
               You will receive a confirmation email shortly.
             </p>
             <p className="text-amber-600 mb-8 text-sm font-medium">
-              If you don't receive an order confirmation email within 30 minutes, please contact us at <a href="mailto:barninzshop@gmail.com" className="underline hover:text-amber-700">barninzshop@gmail.com</a>
+              If you don't receive an order confirmation email within 6 hours, please contact us at <a href="mailto:barninzshop@gmail.com" className="underline hover:text-amber-700">barninzshop@gmail.com</a>
             </p>
             <div className="mb-8 p-6 bg-gray-50 rounded-lg">
               <h3 className="font-bold mb-2">Order Summary</h3>
               <div className="flex justify-between mb-2">
                 <span>Order Number:</span>
-                <span className="font-medium">ORD-{Math.floor(Math.random() * 10000).toString().padStart(4, '0')}</span>
+                <span className="font-medium">{sessionStorage.getItem('orderNumber') || 'ORD-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0')}</span>
               </div>
               <div className="flex justify-between mb-2">
                 <span>Order Date:</span>
-                <span className="font-medium">{new Date().toLocaleDateString()}</span>
+                <span className="font-medium">{sessionStorage.getItem('orderDate') || new Date().toLocaleDateString()}</span>
               </div>
               <div className="flex justify-between">
                 <span>Total Amount:</span>
-                <span className="font-bold">{formatPrice(total)}</span>
+                <span className="font-bold">{sessionStorage.getItem('orderTotal') ? `${sessionStorage.getItem('orderTotal')} TND` : formatPrice(total)}</span>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -176,6 +315,7 @@ const CheckoutPage = () => {
     )
   }
 
+  // Regular checkout state
   return (
     <div className="pt-24 pb-16">
       <div className="container">
@@ -193,8 +333,6 @@ const CheckoutPage = () => {
         >
           Checkout
         </motion.h1>
-
-        {/* No checkout steps needed as we only have shipping information */}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {/* Form Section */}
@@ -367,40 +505,93 @@ const CheckoutPage = () => {
               
               <div className="space-y-4 mb-6">
                 <div className="max-h-60 overflow-y-auto mb-4">
-                  {items.map(item => (
-                    <div key={item.id} className="flex items-center py-2 border-b border-gray-100">
-                      <div className="w-12 h-12 bg-gray-100 rounded-md overflow-hidden mr-3">
-                        <img 
-                          src={item.image} 
-                          alt={item.name} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="text-sm font-medium">{item.name}</h4>
-                        <div className="flex justify-between text-sm text-gray-500">
-                          <span>Qty: {item.quantity}</span>
-                          <span>{formatPrice(item.price * item.quantity)}</span>
+                  {items.map(item => {
+                    // Get prices with fallbacks
+                    const finalPrice = item.finalPrice || item.price;
+                    const originalPrice = item.originalPrice || item.price;
+                    const hasDiscount = originalPrice > finalPrice;
+                    const discountPercentage = hasDiscount ? 
+                      Math.round((1 - (finalPrice / originalPrice)) * 100) : 0;
+                    
+                    // Check stock availability for this item
+                    const product = products ? products.find(p => p.id === item.id) : null;
+                    const isLowStock = product && product.stock < 10 && product.stock > 0;
+                    const isOutOfStock = product && product.stock === 0;
+                    const hasInsufficientStock = product && product.stock < item.quantity;
+                    
+                    return (
+                      <div key={item.id} className="flex items-center py-2 border-b border-gray-100">
+                        <div className="w-12 h-12 bg-gray-100 rounded-md overflow-hidden mr-3">
+                          <img 
+                            src={item.image} 
+                            alt={item.name} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-medium">{item.name}</h4>
+                          <div className="flex justify-between text-sm">
+                            <span>Qty: {item.quantity}</span>
+                            {/* Always show the current/discounted price */}
+                            <span className="font-medium">{formatPrice(finalPrice * item.quantity)}</span>
+                          </div>
+                          
+                          {/* Only show the original price if there's a discount */}
+                          {hasDiscount && (
+                            <div className="text-xs text-right">
+                              <span className="line-through text-gray-500">
+                                {formatPrice(originalPrice * item.quantity)}
+                              </span>
+                              <span className="ml-1 text-red-500">
+                                ({discountPercentage}% off)
+                              </span>
+                            </div>
+                          )}
+                          
+                          {/* Show stock warnings */}
+                          {isOutOfStock && (
+                            <div className="text-xs text-red-600 mt-1">
+                              Out of stock
+                            </div>
+                          )}
+                          
+                          {!isOutOfStock && hasInsufficientStock && (
+                            <div className="text-xs text-red-600 mt-1">
+                              Only {product.stock} available
+                            </div>
+                          )}
+                          
+                          {!hasInsufficientStock && isLowStock && (
+                            <div className="text-xs text-amber-600 mt-1">
+                              Low stock: {product.stock} left
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 
+                {/* Order totals */}
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium">{formatPrice(subtotal)}</span>
                 </div>
+                
+                {totalSavings > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Savings</span>
+                    <span>-{formatPrice(totalSavings)}</span>
+                  </div>
+                )}
+                
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
                   <span className="font-medium">
-                    {shipping === 0 ? 'Free' : formatPrice(shipping)}
+                    {formatPrice(shipping)}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tax</span>
-                  <span className="font-medium">{formatPrice(tax)}</span>
-                </div>
+                
                 <div className="border-t border-gray-200 pt-4 flex justify-between">
                   <span className="font-bold">Total</span>
                   <span className="font-bold text-xl">{formatPrice(total)}</span>

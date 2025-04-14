@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FiEdit, FiTrash2, FiPlus, FiSearch, FiFilter, FiX } from 'react-icons/fi'
 
@@ -10,6 +10,17 @@ const InventoryManager = ({ products, onAddProduct, onUpdateProduct, onDeletePro
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [sortBy, setSortBy] = useState('name')
+  
+  // Prevent background scrolling when modal is open
+  useEffect(() => {
+    if (showAddForm) {
+      document.body.style.overflow = 'hidden';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [showAddForm]);
   
   // Get unique categories from products
   const categories = [...new Set(products.map(product => product.category))]
@@ -42,6 +53,11 @@ const InventoryManager = ({ products, onAddProduct, onUpdateProduct, onDeletePro
       onDeleteProduct(productId)
     }
   }
+  
+  // Prevent click propagation inside the modal
+  const handleModalClick = (e) => {
+    e.stopPropagation();
+  };
   
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -188,17 +204,37 @@ const InventoryManager = ({ products, onAddProduct, onUpdateProduct, onDeletePro
       {/* Add Product Modal */}
       <AnimatePresence>
         {showAddForm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div 
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowAddForm(false)}
           >
-            <AddProductForm 
-              onClose={() => setShowAddForm(false)} 
-              onAddProduct={onAddProduct} 
-            />
-          </motion.div>
+            <div onClick={handleModalClick} className="w-full max-w-4xl">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="bg-white rounded-lg shadow-xl w-full overflow-hidden"
+              >
+                <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                  <h2 className="text-2xl font-bold">Add New Product</h2>
+                  <button
+                    onClick={() => setShowAddForm(false)}
+                    className="p-2 rounded-full hover:bg-gray-100"
+                    aria-label="Close"
+                  >
+                    <FiX />
+                  </button>
+                </div>
+                
+                <div className="overflow-y-auto max-h-[calc(100vh-200px)] p-6">
+                  <AddProductForm 
+                    onClose={() => setShowAddForm(false)} 
+                    onAddProduct={onAddProduct} 
+                  />
+                </div>
+              </motion.div>
+            </div>
+          </div>
         )}
       </AnimatePresence>
     </div>

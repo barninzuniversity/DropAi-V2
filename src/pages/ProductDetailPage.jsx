@@ -10,8 +10,10 @@ import { allProducts } from '../data/products'
 import useCartStore from '../store/cartStore'
 
 // Components
-import DynamicPricing from '../components/products/DynamicPricing'
 import ProductRecommendations from '../components/products/ProductRecommendations'
+
+// Utils
+import { formatPrice, calculateDiscountedPrice } from '../utils/priceFormatter'
 
 const ProductDetailPage = () => {
   const { id } = useParams()
@@ -24,16 +26,6 @@ const ProductDetailPage = () => {
   const [recipientEmail, setRecipientEmail] = useState('')
   const [shareStatus, setShareStatus] = useState({ loading: false, success: false, error: '' })
   const { addItem } = useCartStore()
-
-  // Format price with currency symbol
-  const formatPrice = (price) => {
-    return `$${price.toFixed(2)}`
-  }
-
-  // Calculate discounted price
-  const getDiscountedPrice = (price, discount) => {
-    return price - (price * (discount / 100))
-  }
 
   useEffect(() => {
     // In a real app, this would be an API call
@@ -51,7 +43,23 @@ const ProductDetailPage = () => {
 
   const handleAddToCart = () => {
     if (product) {
-      addItem(product, quantity)
+      // Calculate original price if product has a discount
+      if (product.discount > 0) {
+        const originalPrice = product.price;
+        const discountedPrice = calculateDiscountedPrice(originalPrice, product.discount);
+        
+        // Add item with original and discounted price
+        const itemWithPriceInfo = {
+          ...product,
+          originalPrice,
+          discountedPrice
+        };
+        
+        addItem(itemWithPriceInfo, quantity);
+      } else {
+        // Regular product without discount
+        addItem(product, quantity);
+      }
     }
   }
 
@@ -203,13 +211,25 @@ const ProductDetailPage = () => {
 
             <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
 
-            {/* Dynamic Pricing Component */}
+            {/* Product Pricing */}
             <div className="mb-6">
-              <DynamicPricing 
-                basePrice={product.price} 
-                productId={product.id} 
-                discount={product.discount} 
-              />
+              {product.discount > 0 ? (
+                <div className="flex items-center">
+                  <span className="text-2xl font-bold text-primary-600 mr-2">
+                    {formatPrice(calculateDiscountedPrice(product.price, product.discount))}
+                  </span>
+                  <span className="text-lg text-gray-500 line-through">
+                    {formatPrice(product.price)}
+                  </span>
+                  <span className="ml-2 bg-accent-500 text-white text-sm font-bold px-2 py-1 rounded-full">
+                    {product.discount}% OFF
+                  </span>
+                </div>
+              ) : (
+                <span className="text-2xl font-bold text-primary-600">
+                  {formatPrice(product.price)}
+                </span>
+              )}
             </div>
 
             <p className="text-gray-700 mb-6">{product.description}</p>

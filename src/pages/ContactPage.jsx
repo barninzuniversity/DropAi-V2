@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
-import { FiMail, FiMapPin, FiPhone, FiSend, FiCheck } from 'react-icons/fi'
+import { FiMail, FiPhone, FiSend, FiCheck } from 'react-icons/fi'
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -87,16 +87,9 @@ const ContactPage = () => {
     {
       icon: <FiPhone className="text-2xl text-primary-500" />,
       title: 'Call Us',
-      details: '+1 (555) 123-4567',
-      action: 'tel:+15551234567',
+      details: '+216 28 647 334',
+      action: 'tel:+21628647334',
       actionText: 'Call Now'
-    },
-    {
-      icon: <FiMapPin className="text-2xl text-primary-500" />,
-      title: 'Visit Us',
-      details: '123 AI Boulevard, San Francisco, CA 94107',
-      action: 'https://maps.google.com',
-      actionText: 'Get Directions'
     }
   ]
 
@@ -284,25 +277,6 @@ const ContactPage = () => {
                 </a>
               </motion.div>
             </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Map Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container">
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="aspect-w-16 aspect-h-9">
-              <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d100939.98555098464!2d-122.50764017948068!3d37.75781499657613!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x80859a6d00690021%3A0x4a501367f076adff!2sSan%20Francisco%2C%20CA!5e0!3m2!1sen!2sus!4v1636587330279!5m2!1sen!2sus" 
-                width="100%" 
-                height="100%" 
-                style={{ border: 0 }} 
-                allowFullScreen="" 
-                loading="lazy"
-                title="DropAI Office Location"
-              ></iframe>
-            </div>
           </div>
         </div>
       </section>

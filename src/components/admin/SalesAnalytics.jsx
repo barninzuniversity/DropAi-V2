@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FiBarChart2, FiDollarSign, FiShoppingBag, FiUsers, FiCalendar, FiTrendingUp, FiTrendingDown } from 'react-icons/fi'
+import { FiBarChart2, FiDollarSign, FiShoppingBag } from 'react-icons/fi'
 
 const SalesAnalytics = () => {
   // In a real app, this would come from an API
@@ -19,20 +19,20 @@ const SalesAnalytics = () => {
     }, 800)
   }, [timeRange])
 
-  // Generate mock sales data based on time range
+  // Generate mock sales data based on time range with all revenue values set to 0
   const generateMockData = (range) => {
     const today = new Date()
     let labels = []
     let revenue = []
     let orders = []
     
-    // Generate date labels and random data based on selected time range
+    // Generate date labels and zero data based on selected time range
     switch (range) {
       case 'day':
         // Hourly data for today
         labels = Array.from({ length: 24 }, (_, i) => `${i}:00`)
-        revenue = Array.from({ length: 24 }, () => Math.floor(Math.random() * 500) + 100)
-        orders = Array.from({ length: 24 }, () => Math.floor(Math.random() * 10) + 1)
+        revenue = Array.from({ length: 24 }, () => 0)
+        orders = Array.from({ length: 24 }, () => 0)
         break
       case 'week':
         // Daily data for the week
@@ -40,44 +40,52 @@ const SalesAnalytics = () => {
           const date = new Date(today)
           date.setDate(date.getDate() - i)
           labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }))
-          revenue.push(Math.floor(Math.random() * 2000) + 500)
-          orders.push(Math.floor(Math.random() * 30) + 5)
+          revenue.push(0)
+          orders.push(0)
         }
         break
       case 'month':
         // Weekly data for the month
         for (let i = 0; i < 4; i++) {
           labels.push(`Week ${i + 1}`)
-          revenue.push(Math.floor(Math.random() * 10000) + 2000)
-          orders.push(Math.floor(Math.random() * 100) + 20)
+          revenue.push(0)
+          orders.push(0)
         }
         break
       case 'year':
         // Monthly data for the year
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         labels = monthNames
-        revenue = Array.from({ length: 12 }, () => Math.floor(Math.random() * 50000) + 10000)
-        orders = Array.from({ length: 12 }, () => Math.floor(Math.random() * 500) + 100)
+        revenue = Array.from({ length: 12 }, () => 0)
+        orders = Array.from({ length: 12 }, () => 0)
         break
       default:
+        // Default to week if none specified
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date(today)
+          date.setDate(date.getDate() - i)
+          labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }))
+          revenue.push(0)
+          orders.push(0)
+        }
         break
     }
     
-    // Calculate totals and averages
-    const totalRevenue = revenue.reduce((sum, val) => sum + val, 0)
-    const totalOrders = orders.reduce((sum, val) => sum + val, 0)
-    const averageOrderValue = totalRevenue / totalOrders
+    // All totals are set to 0
+    const totalRevenue = 0
+    const totalOrders = 0
+    const averageOrderValue = 0
     
-    // Calculate percent changes (mock data)
-    const revenueChange = Math.floor(Math.random() * 30) - 10 // -10% to +20%
-    const ordersChange = Math.floor(Math.random() * 25) - 5 // -5% to +20%
+    // All percentage changes set to 0
+    const revenueChange = 0
+    const ordersChange = 0
     
-    // Top selling products (mock data)
+    // Top selling products with 0 values
     const topProducts = [
-      { id: 1, name: 'Premium Wireless Earbuds', sales: Math.floor(Math.random() * 50) + 20, revenue: Math.floor(Math.random() * 5000) + 1000 },
-      { id: 2, name: 'Smart Fitness Tracker Watch', sales: Math.floor(Math.random() * 40) + 15, revenue: Math.floor(Math.random() * 4000) + 800 },
-      { id: 3, name: 'Portable Bluetooth Speaker', sales: Math.floor(Math.random() * 30) + 10, revenue: Math.floor(Math.random() * 3000) + 600 },
-      { id: 5, name: 'Smart Home Security Camera', sales: Math.floor(Math.random() * 25) + 5, revenue: Math.floor(Math.random() * 2500) + 400 },
+      { id: 1, name: 'Premium Wireless Earbuds', sales: 0, revenue: 0 },
+      { id: 2, name: 'Smart Fitness Tracker Watch', sales: 0, revenue: 0 },
+      { id: 3, name: 'Portable Bluetooth Speaker', sales: 0, revenue: 0 },
+      { id: 4, name: 'Smart Home Security Camera', sales: 0, revenue: 0 },
     ]
     
     return {
@@ -161,9 +169,8 @@ const SalesAnalytics = () => {
             <div>
               <p className="text-blue-800 text-sm font-medium mb-1">Total Revenue</p>
               <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(salesData.totalRevenue)}</h3>
-              <div className={`flex items-center mt-2 ${salesData.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {salesData.revenueChange >= 0 ? <FiTrendingUp className="mr-1" /> : <FiTrendingDown className="mr-1" />}
-                <span className="text-sm font-medium">{Math.abs(salesData.revenueChange)}% from previous {timeRange}</span>
+              <div className="flex items-center mt-2 text-gray-600">
+                <span className="text-sm font-medium">0% change</span>
               </div>
             </div>
             <div className="p-3 bg-blue-500 bg-opacity-20 rounded-full">
@@ -183,9 +190,8 @@ const SalesAnalytics = () => {
             <div>
               <p className="text-purple-800 text-sm font-medium mb-1">Total Orders</p>
               <h3 className="text-2xl font-bold text-gray-900">{salesData.totalOrders}</h3>
-              <div className={`flex items-center mt-2 ${salesData.ordersChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {salesData.ordersChange >= 0 ? <FiTrendingUp className="mr-1" /> : <FiTrendingDown className="mr-1" />}
-                <span className="text-sm font-medium">{Math.abs(salesData.ordersChange)}% from previous {timeRange}</span>
+              <div className="flex items-center mt-2 text-gray-600">
+                <span className="text-sm font-medium">0% change</span>
               </div>
             </div>
             <div className="p-3 bg-purple-500 bg-opacity-20 rounded-full">
@@ -220,20 +226,19 @@ const SalesAnalytics = () => {
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4">Revenue Over Time</h3>
         <div className="bg-gray-50 rounded-lg p-4 h-64 flex items-end justify-between">
-          {/* Simple bar chart visualization */}
-          {salesData.revenue.map((value, index) => {
-            const height = `${(value / Math.max(...salesData.revenue)) * 100}%`
-            return (
-              <div key={index} className="flex flex-col items-center justify-end h-full">
-                <div 
-                  className="w-12 bg-primary-500 rounded-t-md transition-all duration-500 ease-in-out hover:bg-primary-600"
-                  style={{ height }}
-                  title={`${salesData.labels[index]}: ${formatCurrency(value)}`}
-                ></div>
-                <div className="text-xs text-gray-600 mt-2 w-12 text-center truncate">{salesData.labels[index]}</div>
+          {/* Simple bar chart visualization with minimal but visible bars */}
+          {salesData.revenue.map((value, index) => (
+            <div key={`revenue-bar-${index}`} className="flex flex-col items-center justify-end h-full">
+              <div 
+                className="w-12 bg-primary-500 rounded-t-md transition-all duration-500 ease-in-out hover:bg-primary-600"
+                style={{ height: "5px" }} // Slightly increased for better visibility
+                title={`${salesData.labels[index]}: ${formatCurrency(0)}`}
+              ></div>
+              <div className="text-xs text-gray-600 mt-2 w-12 text-center truncate">
+                {salesData.labels[index]}
               </div>
-            )
-          })}
+            </div>
+          ))}
         </div>
       </div>
       
@@ -251,7 +256,7 @@ const SalesAnalytics = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {salesData.topProducts.map(product => (
-                <tr key={product.id}>
+                <tr key={`product-${product.id}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900">{product.name}</div>
                   </td>

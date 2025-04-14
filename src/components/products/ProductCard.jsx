@@ -13,7 +13,7 @@ const ProductCard = ({ product }) => {
 
   // Format price with currency symbol
   const formatPrice = (price) => {
-    return `$${price.toFixed(2)}`
+    return `${price.toFixed(2)} TND`
   }
 
   // Calculate discounted price
