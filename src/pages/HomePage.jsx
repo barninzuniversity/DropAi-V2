@@ -4,14 +4,19 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { FiArrowRight, FiShoppingCart, FiStar, FiTrendingUp, FiPackage, FiHeadphones } from 'react-icons/fi'
 
-// Data
-import { featuredProducts } from '../data/products'
+// Custom Hook
+import useProducts from '../hooks/useProducts'
 
 // Components
 import ProductCard from '../components/products/ProductCard'
 
 const HomePage = () => {
-  const [products, setProducts] = useState([])
+  // Get featured products using our custom hook
+  const { products, loading, error, refreshProducts } = useProducts({ 
+    featured: true, 
+    limit: 4 
+  });
+
   const { scrollY } = useScroll()
   const y1 = useTransform(scrollY, [0, 500], [0, 100])
   const y2 = useTransform(scrollY, [0, 500], [0, -100])
@@ -22,10 +27,12 @@ const HomePage = () => {
   const [productsRef, productsInView] = useInView({ threshold: 0.1, triggerOnce: true })
   const [ctaRef, ctaInView] = useInView({ threshold: 0.1, triggerOnce: true })
   
+  // Refresh products when component is visible
   useEffect(() => {
-    // In a real app, this would be an API call
-    setProducts(featuredProducts.slice(0, 4))
-  }, [])
+    if (productsInView) {
+      refreshProducts();
+    }
+  }, [productsInView, refreshProducts]);
 
   // Format price with currency symbol
   const formatPrice = (price) => {
@@ -190,69 +197,99 @@ const HomePage = () => {
             </p>
           </motion.div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {products.map((product, index) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={productsInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                whileHover={{ y: -10 }}
-                className="card group"
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600 mb-2"></div>
+              <p className="text-gray-500">Loading products...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-500 mb-2">{error}</p>
+              <button 
+                onClick={refreshProducts}
+                className="btn btn-primary btn-sm"
               >
-                <div className="relative overflow-hidden">
-                  <img 
-                    src={product.image} 
-                    alt={product.name}
-                    className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  {product.discount > 0 && (
-                    <div className="absolute top-4 right-4 bg-accent-500 text-white text-sm font-bold px-3 py-1 rounded-full">
-                      {product.discount}% OFF
+                Try Again
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {products.length > 0 ? (
+                products.map((product, index) => (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={productsInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    whileHover={{ y: -10 }}
+                    className="card group"
+                  >
+                    <div className="relative overflow-hidden">
+                      <img 
+                        src={product.image} 
+                        alt={product.name}
+                        className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      {product.discount > 0 && (
+                        <div className="absolute top-4 right-4 bg-accent-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+                          {product.discount}% OFF
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <Link 
+                          to={`/products/${product.id}`}
+                          className="bg-white text-primary-600 hover:bg-primary-600 hover:text-white transition-colors duration-300 font-medium px-4 py-2 rounded-lg"
+                        >
+                          View Details
+                        </Link>
+                      </div>
                     </div>
-                  )}
-                  <div className="absolute inset-0 bg-black bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <Link 
-                      to={`/products/${product.id}`}
-                      className="bg-white text-primary-600 hover:bg-primary-600 hover:text-white transition-colors duration-300 font-medium px-4 py-2 rounded-lg"
-                    >
-                      View Details
-                    </Link>
-                  </div>
-                </div>
-                <div className="p-5">
-                  <div className="flex items-center mb-2">
-                    <div className="flex text-accent-500">
-                      {[...Array(5)].map((_, i) => (
-                        <FiStar 
-                          key={i} 
-                          className={`${i < Math.floor(product.rating) ? 'fill-current' : ''}`} 
-                        />
-                      ))}
+                    <div className="p-5">
+                      <div className="flex items-center mb-2">
+                        <div className="flex text-accent-500">
+                          {[...Array(5)].map((_, i) => (
+                            <FiStar 
+                              key={i} 
+                              className={`${i < Math.floor(product.rating) ? 'fill-current' : ''}`} 
+                            />
+                          ))}
+                        </div>
+                        <span className="text-gray-500 text-sm ml-2">{product.reviews} reviews</span>
+                      </div>
+                      <h3 className="text-lg font-bold mb-1 text-gray-800">{product.name}</h3>
+                      <div className="flex items-center">
+                        {product.discount > 0 ? (
+                          <>
+                            <span className="text-lg font-bold text-primary-600">
+                              {formatPrice(getDiscountedPrice(product.price, product.discount))}
+                            </span>
+                            <span className="text-sm text-gray-500 line-through ml-2">
+                              {formatPrice(product.price)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-lg font-bold text-primary-600">
+                            {formatPrice(product.price)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-gray-500 text-sm ml-2">{product.reviews} reviews</span>
-                  </div>
-                  <h3 className="text-lg font-bold mb-1 text-gray-800">{product.name}</h3>
-                  <div className="flex items-center">
-                    {product.discount > 0 ? (
-                      <>
-                        <span className="text-lg font-bold text-primary-600">
-                          {formatPrice(getDiscountedPrice(product.price, product.discount))}
-                        </span>
-                        <span className="text-sm text-gray-500 line-through ml-2">
-                          {formatPrice(product.price)}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-lg font-bold text-primary-600">
-                        {formatPrice(product.price)}
-                      </span>
-                    )}
-                  </div>
+                  </motion.div>
+                ))
+              ) : (
+                // Empty state
+                <div className="col-span-full text-center py-8">
+                  <p className="text-gray-500">No featured products available right now. Check back soon!</p>
+                  <Link 
+                    to="/products"
+                    className="btn btn-outline inline-flex items-center mt-4"
+                  >
+                    View All Products <FiArrowRight className="ml-2" />
+                  </Link>
                 </div>
-              </motion.div>
-            ))}
-          </div>
+              )}
+            </div>
+          )}
           
           <motion.div
             initial={{ opacity: 0, y: 20 }}

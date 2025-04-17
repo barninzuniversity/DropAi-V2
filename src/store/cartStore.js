@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { processProductPrices, calculateDiscountedPrice } from '../utils/priceFormatter'
-import { validateStockAvailability, decrementStock } from '../utils/inventoryService'
+import { validateStockAvailability, processOrder } from '../utils/inventoryService'
 
 const useCartStore = create(
   persist(
@@ -118,47 +118,47 @@ const useCartStore = create(
       },
       
       // Complete checkout process
-      checkout: async (orderDetails, updateStockCallback, products) => {
+      checkout: async (orderDetails, refreshProductsCallback) => {
         const { items } = get();
         set({ isCheckingOut: true, checkoutError: null });
         
         try {
-          // First validate if all items are in stock
+          // Format ordered items for inventory processing
           const orderedItems = items.map(item => ({
             productId: item.id,
             quantity: item.quantity
           }));
           
-          const stockValidation = validateStockAvailability(orderedItems, products);
+          // Process the order using the inventory service
+          const orderResult = processOrder(orderedItems);
           
-          if (!stockValidation.success) {
+          if (!orderResult.success) {
             set({ 
               isCheckingOut: false, 
               checkoutError: {
-                message: 'Some items are out of stock',
-                insufficientItems: stockValidation.insufficientItems
+                message: orderResult.message || 'Failed to process order',
+                insufficientItems: orderResult.insufficientItems
               }
             });
-            return { success: false, error: 'Insufficient stock' };
+            return { success: false, error: orderResult.message };
           }
           
-          // Process order - this would typically call your backend API
-          // For demo purposes, simulate a successful order
-          const orderResponse = { 
+          // Order successful - refresh products in the UI
+          if (refreshProductsCallback && typeof refreshProductsCallback === 'function') {
+            refreshProductsCallback();
+          }
+          
+          // Generate a dummy order ID for demonstration
+          const orderId = `ORD-${Date.now()}`;
+          
+          // Clear cart after successful order
+          set({ items: [], isCheckingOut: false });
+          
+          return { 
             success: true, 
-            orderId: `ORD-${Date.now()}` 
+            orderId,
+            message: 'Order placed successfully'
           };
-          
-          if (orderResponse.success) {
-            // Update inventory when order is successful
-            await decrementStock(orderedItems, updateStockCallback);
-            
-            // Clear cart after successful order
-            set({ items: [], isCheckingOut: false });
-            return { success: true, orderId: orderResponse.orderId };
-          } else {
-            throw new Error('Order processing failed');
-          }
         } catch (error) {
           console.error('Checkout error:', error);
           set({ 

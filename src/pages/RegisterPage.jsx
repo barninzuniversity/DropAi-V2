@@ -3,12 +3,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { FiUser, FiMail, FiLock, FiAlertCircle } from 'react-icons/fi'
 
-// Store
-import useAuthStore from '../store/authStore'
+// Context
+import { useAuth } from '../context/AuthContext'
 
 const RegisterPage = () => {
   const navigate = useNavigate()
-  const { register, isLoading, error, clearError } = useAuthStore()
+  const { register, loading } = useAuth()
   
   const [formData, setFormData] = useState({
     name: '',
@@ -17,6 +17,7 @@ const RegisterPage = () => {
     confirmPassword: ''
   })
   const [formErrors, setFormErrors] = useState({})
+  const [error, setError] = useState('')
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -27,9 +28,9 @@ const RegisterPage = () => {
       setFormErrors(prev => ({ ...prev, [name]: '' }))
     }
     
-    // Clear global error from store
+    // Clear error when user types
     if (error) {
-      clearError()
+      setError('')
     }
   }
 
@@ -66,10 +67,12 @@ const RegisterPage = () => {
     if (!validateForm()) return
     
     try {
-      await register(formData.name, formData.email, formData.password)
-      navigate('/account')
+      const success = await register(formData.email, formData.password, formData.name)
+      if (success) {
+        navigate('/account')
+      }
     } catch (err) {
-      // Error is handled by the store and displayed below
+      setError(err.message || 'Registration failed. Please try again.')
       console.error('Registration failed:', err)
     }
   }
@@ -196,10 +199,10 @@ const RegisterPage = () => {
               <div>
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={loading}
                   className="btn btn-primary w-full"
                 >
-                  {isLoading ? (
+                  {loading ? (
                     <>
                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

@@ -3,13 +3,15 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FiShoppingCart, FiTrash2, FiPlus, FiMinus, FiArrowRight, FiArrowLeft } from 'react-icons/fi'
 
-// Store
-import useCartStore from '../store/cartStore'
+// Context
+import { useCart } from '../context/CartContext'
+import { useAuth } from '../context/AuthContext'
 import useNotificationStore from '../store/notificationStore'
 import { formatPrice } from '../utils/priceFormatter'
 
 const CartPage = ({ products, updateProductStock }) => {
-  const { items, removeItem, updateQuantity, clearCart, getCartTotal } = useCartStore()
+  const { items, removeItem, updateQuantity, clearCart, total, isEmpty } = useCart()
+  const { isAuthenticated } = useAuth()
   const { addNotification } = useNotificationStore()
   const [isLoading, setIsLoading] = useState(true)
   const [removingItemId, setRemovingItemId] = useState(null)
@@ -88,6 +90,17 @@ const CartPage = ({ products, updateProductStock }) => {
   
   // Handle proceeding to checkout
   const handleProceedToCheckout = (e) => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      e.preventDefault()
+      addNotification({
+        type: 'error',
+        message: 'Please log in to checkout'
+      })
+      navigate('/login')
+      return
+    }
+    
     // Check stock availability
     if (products && items.some(item => {
       const product = products.find(p => p.id === item.id)
@@ -108,17 +121,10 @@ const CartPage = ({ products, updateProductStock }) => {
     navigate('/checkout')
   }
 
-  // Calculate subtotal using the current price (which is already the discounted price if applicable)
-  const calculateSubtotal = () => {
-    return items.reduce((total, item) => {
-      return total + (item.price * item.quantity);
-    }, 0);
-  }
-
-  // Calculate subtotal, shipping, and total
-  const subtotal = calculateSubtotal() // Uses the DISCOUNTED prices for items
-  const shipping = items.length > 0 ? 7 : 0 // Flat 7 TND shipping fee if cart has items
-  const total = subtotal + shipping
+  // Calculate shipping and total
+  const subtotal = total // Total from cart context
+  const shipping = !isEmpty ? 7 : 0 // Flat 7 TND shipping fee if cart has items
+  const orderTotal = subtotal + shipping
 
   if (isLoading || isCompletingOrder) {
     return (
@@ -148,7 +154,7 @@ const CartPage = ({ products, updateProductStock }) => {
           </Link>
         </div>
 
-        {items.length === 0 ? (
+        {isEmpty ? (
           <motion.div 
             className="text-center py-16 bg-gray-50 rounded-lg"
             initial={{ opacity: 0 }}
@@ -340,7 +346,7 @@ const CartPage = ({ products, updateProductStock }) => {
                   </div>
                   <div className="border-t border-gray-200 pt-4 flex justify-between">
                     <span className="font-bold">Total</span>
-                    <span className="font-bold text-xl">{formatPrice(total)}</span>
+                    <span className="font-bold text-xl">{formatPrice(orderTotal)}</span>
                   </div>
                 </div>
 

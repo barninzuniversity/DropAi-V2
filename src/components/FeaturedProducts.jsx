@@ -2,26 +2,23 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import ProductCard from './ProductCard';
-import { fetchFeaturedProducts } from '../utils/productService';
+import { getFeaturedProducts } from '../utils/productService';
 
 const FeaturedProducts = () => {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const getProducts = async () => {
-      setIsLoading(true);
-      try {
-        const data = await fetchFeaturedProducts();
-        setProducts(data);
-      } catch (error) {
-        console.error('Error fetching featured products:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    getProducts();
+    setIsLoading(true);
+    try {
+      // Get fresh data from storage
+      const featured = getFeaturedProducts();
+      setProducts(featured);
+    } catch (error) {
+      console.error('Error fetching featured products:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   if (isLoading) {

@@ -3,29 +3,40 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { FiMail, FiLock, FiAlertCircle } from 'react-icons/fi'
 
-// Store
-import useAuthStore from '../store/authStore'
+// Auth Context
+import { useAuth } from '../context/AuthContext'
 
 const LoginPage = () => {
   const navigate = useNavigate()
-  const { login, isLoading, error, clearError } = useAuthStore()
+  const { login, loading, error, clearError } = useAuth()
   
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  })
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [formErrors, setFormErrors] = useState({})
 
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value)
     
     // Clear field-specific error when user types
-    if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: '' }))
+    if (formErrors.email) {
+      setFormErrors(prev => ({ ...prev, email: '' }))
     }
     
-    // Clear global error from store
+    // Clear global error
+    if (error) {
+      clearError()
+    }
+  }
+  
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value)
+    
+    // Clear field-specific error when user types
+    if (formErrors.password) {
+      setFormErrors(prev => ({ ...prev, password: '' }))
+    }
+    
+    // Clear global error
     if (error) {
       clearError()
     }
@@ -34,13 +45,13 @@ const LoginPage = () => {
   const validateForm = () => {
     const errors = {}
     
-    if (!formData.email.trim()) {
+    if (!email.trim()) {
       errors.email = 'Email is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       errors.email = 'Please enter a valid email address'
     }
     
-    if (!formData.password) {
+    if (!password) {
       errors.password = 'Password is required'
     }
     
@@ -53,12 +64,9 @@ const LoginPage = () => {
     
     if (!validateForm()) return
     
-    try {
-      await login(formData.email, formData.password)
+    const success = await login(email, password)
+    if (success) {
       navigate('/account')
-    } catch (err) {
-      // Error is handled by the store and displayed below
-      console.error('Login failed:', err)
     }
   }
 
@@ -101,8 +109,8 @@ const LoginPage = () => {
                     type="email"
                     id="email"
                     name="email"
-                    value={formData.email}
-                    onChange={handleChange}
+                    value={email}
+                    onChange={handleEmailChange}
                     className={`input pl-10 ${formErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                     placeholder="you@example.com"
                   />
@@ -124,8 +132,8 @@ const LoginPage = () => {
                     type="password"
                     id="password"
                     name="password"
-                    value={formData.password}
-                    onChange={handleChange}
+                    value={password}
+                    onChange={handlePasswordChange}
                     className={`input pl-10 ${formErrors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                     placeholder="••••••••"
                   />
@@ -158,10 +166,10 @@ const LoginPage = () => {
               <div>
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={loading}
                   className="btn btn-primary w-full"
                 >
-                  {isLoading ? (
+                  {loading ? (
                     <>
                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

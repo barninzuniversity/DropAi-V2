@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { FiArrowLeft, FiShoppingCart, FiStar, FiHeart, FiShare2, FiCheck, FiMinus, FiPlus, FiX, FiMail } from 'react-icons/fi'
+import { toast } from 'react-hot-toast'
 
 // Data
 import { allProducts } from '../data/products'
 
-// Store
-import useCartStore from '../store/cartStore'
+// Context
+import { useCart } from '../context/CartContext'
 
 // Components
 import ProductRecommendations from '../components/products/ProductRecommendations'
@@ -25,17 +26,28 @@ const ProductDetailPage = () => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const [recipientEmail, setRecipientEmail] = useState('')
   const [shareStatus, setShareStatus] = useState({ loading: false, success: false, error: '' })
-  const { addItem } = useCartStore()
+  const { addItem } = useCart()
 
   useEffect(() => {
     // In a real app, this would be an API call
     const fetchProduct = async () => {
-      setLoading(true)
-      setTimeout(() => {
-        const foundProduct = allProducts.find(p => p.id === parseInt(id))
-        setProduct(foundProduct || null)
+      try {
+        setLoading(true)
+        // Simulate network delay
+        setTimeout(() => {
+          const foundProduct = allProducts.find(p => p.id === parseInt(id))
+          if (foundProduct) {
+            setProduct(foundProduct)
+          } else {
+            toast.error('Product not found')
+          }
+          setLoading(false)
+        }, 800)
+      } catch (error) {
+        console.error('Error fetching product:', error)
+        toast.error('Failed to load product details')
         setLoading(false)
-      }, 800)
+      }
     }
 
     fetchProduct()
@@ -56,13 +68,25 @@ const ProductDetailPage = () => {
         };
         
         addItem(itemWithPriceInfo, quantity);
+        toast.success(`${product.name} added to cart!`);
       } else {
         // Regular product without discount
         addItem(product, quantity);
+        toast.success(`${product.name} added to cart!`);
       }
     }
   }
 
+  const incrementQuantity = () => {
+    const newQuantity = Math.min(99, quantity + 1)
+    setQuantity(newQuantity)
+  }
+  
+  const decrementQuantity = () => {
+    const newQuantity = Math.max(1, quantity - 1)
+    setQuantity(newQuantity)
+  }
+  
   const handleQuantityChange = (value) => {
     const newQuantity = Math.max(1, Math.min(99, quantity + value))
     setQuantity(newQuantity)
@@ -247,7 +271,7 @@ const ProductDetailPage = () => {
               <label className="block text-gray-700 font-medium mb-2">Quantity</label>
               <div className="flex items-center">
                 <button
-                  onClick={() => handleQuantityChange(-1)}
+                  onClick={decrementQuantity}
                   className="p-2 border border-gray-300 rounded-l-md hover:bg-gray-100"
                   disabled={quantity <= 1}
                 >
@@ -262,7 +286,7 @@ const ProductDetailPage = () => {
                   className="w-16 text-center border-t border-b border-gray-300 py-2 focus:outline-none"
                 />
                 <button
-                  onClick={() => handleQuantityChange(1)}
+                  onClick={incrementQuantity}
                   className="p-2 border border-gray-300 rounded-r-md hover:bg-gray-100"
                   disabled={quantity >= 99}
                 >

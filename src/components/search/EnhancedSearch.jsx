@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { FiSearch, FiX, FiCpu, FiTrendingUp } from 'react-icons/fi'
 
 // Data
-import { allProducts } from '../../data/products'
+import { getAllProducts } from '../../data/products'
 
 const EnhancedSearch = () => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -13,8 +13,14 @@ const EnhancedSearch = () => {
   const [showResults, setShowResults] = useState(false)
   const [recentSearches, setRecentSearches] = useState([])
   const [searchSuggestions, setSearchSuggestions] = useState([])
+  const [products, setProducts] = useState([])
   const searchRef = useRef(null)
   const inputRef = useRef(null)
+
+  // Load products when component mounts
+  useEffect(() => {
+    setProducts(getAllProducts())
+  }, [])
 
   // Format price with currency symbol
   const formatPrice = (price) => {
@@ -48,12 +54,12 @@ const EnhancedSearch = () => {
 
   // Generate search suggestions based on current input
   useEffect(() => {
-    if (searchTerm.length > 1) {
+    if (searchTerm.length > 1 && products.length > 0) {
       // Simulate AI-powered search suggestions
       const generateSuggestions = () => {
         // In a real app, this would call an NLP API
-        const categories = [...new Set(allProducts.map(p => p.category))]
-        const tags = [...new Set(allProducts.flatMap(p => p.tags || []))]
+        const categories = [...new Set(products.map(p => p.category))]
+        const tags = [...new Set(products.flatMap(p => p.tags || []))]
         
         const matchingCategories = categories
           .filter(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -79,11 +85,11 @@ const EnhancedSearch = () => {
     } else {
       setSearchSuggestions([])
     }
-  }, [searchTerm])
+  }, [searchTerm, products])
 
   // Perform search when searchTerm changes
   useEffect(() => {
-    if (searchTerm.length > 2) {
+    if (searchTerm.length > 2 && products.length > 0) {
       setIsSearching(true)
       setShowResults(true)
       
@@ -92,7 +98,7 @@ const EnhancedSearch = () => {
         // In a real app, this would be an API call to an NLP search service
         const performSearch = () => {
           // Basic search implementation (would be replaced by actual NLP in production)
-          const results = allProducts.filter(product => {
+          const results = products.filter(product => {
             const searchLower = searchTerm.toLowerCase()
             
             // Check if search term is in product name, description, category, or tags
@@ -138,7 +144,7 @@ const EnhancedSearch = () => {
       setSearchResults([])
       setIsSearching(false)
     }
-  }, [searchTerm])
+  }, [searchTerm, products])
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value)

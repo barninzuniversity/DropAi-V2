@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiEdit, FiTrash2, FiPlus, FiSearch } from 'react-icons/fi';
+import { FiEdit, FiTrash2, FiPlus, FiSearch, FiCheck, FiX } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { calculateDiscountedPrice } from '../../utils/priceFormatter';
 
@@ -7,6 +7,9 @@ const ProductManagement = ({ products, onAddProduct, onUpdateProduct, onDeletePr
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [deleteType, setDeleteType] = useState('soft'); // 'soft' or 'hard'
   const [editForm, setEditForm] = useState({
     name: '',
     price: 0,
@@ -88,10 +91,30 @@ const ProductManagement = ({ products, onAddProduct, onUpdateProduct, onDeletePr
     setEditingId(null);
   };
 
-  const handleDeleteClick = (productId) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      onDeleteProduct(productId);
+  const handleDeleteClick = (product, type = 'soft') => {
+    setProductToDelete(product);
+    setDeleteType(type);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    if (!productToDelete) return;
+    
+    if (deleteType === 'hard') {
+      // Permanently delete the product
+      onDeleteProduct(productToDelete.id, true);
+    } else {
+      // Soft delete - mark as deleted but keep in database
+      onDeleteProduct(productToDelete.id, false);
     }
+    
+    setShowDeleteConfirm(false);
+    setProductToDelete(null);
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setProductToDelete(null);
   };
 
   return (
@@ -259,7 +282,7 @@ const ProductManagement = ({ products, onAddProduct, onUpdateProduct, onDeletePr
                           <FiEdit />
                         </button>
                         <button
-                          onClick={() => handleDeleteClick(product.id)}
+                          onClick={() => handleDeleteClick(product)}
                           className="text-red-600 hover:text-red-900"
                         >
                           <FiTrash2 />
@@ -273,6 +296,47 @@ const ProductManagement = ({ products, onAddProduct, onUpdateProduct, onDeletePr
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
+            <p className="mb-6">
+              Are you sure you want to {deleteType === 'hard' ? 'permanently delete' : 'delete'} the product "{productToDelete?.name}"?
+              {deleteType !== 'hard' && (
+                <span className="block mt-2 text-gray-600 text-sm">
+                  Note: The product will be marked as deleted but can be restored later.
+                </span>
+              )}
+            </p>
+            <div className="flex justify-end space-x-2">
+              {deleteType !== 'hard' && (
+                <button 
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  onClick={() => {
+                    setDeleteType('hard');
+                  }}
+                >
+                  <FiTrash2 className="inline mr-1" /> Delete Permanently
+                </button>
+              )}
+              <button 
+                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100"
+                onClick={cancelDelete}
+              >
+                <FiX className="inline mr-1" /> Cancel
+              </button>
+              <button 
+                className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+                onClick={confirmDelete}
+              >
+                <FiCheck className="inline mr-1" /> Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

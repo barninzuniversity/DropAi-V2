@@ -2,35 +2,58 @@ import { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { FiFilter, FiX } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getAllProducts } from '../data/products';
 
-const ProductGrid = ({ products, title, filters = true }) => {
-  const [filteredProducts, setFilteredProducts] = useState(products);
+const ProductGrid = ({ category, searchTerm, title, filters = true }) => {
+  const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
   const [sortBy, setSortBy] = useState('default');
   const [priceRange, setPriceRange] = useState([0, 1000]);
   const [maxPrice, setMaxPrice] = useState(1000);
 
+  // Fetch products when component mounts or filters change
   useEffect(() => {
-    // Update filtered products when products prop changes
-    setFilteredProducts(products);
+    // Get fresh data from storage
+    let allProducts = getAllProducts();
+    
+    // Apply category filter if specified
+    if (category && category !== 'all') {
+      allProducts = allProducts.filter(
+        product => product.category === category
+      );
+    }
+    
+    // Apply search filter if specified
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      allProducts = allProducts.filter(
+        product => 
+          product.name.toLowerCase().includes(search) ||
+          product.description.toLowerCase().includes(search) ||
+          (product.tags && product.tags.some(tag => tag.toLowerCase().includes(search)))
+      );
+    }
+    
+    setProducts(allProducts);
     
     // Find the maximum price in the products array
-    if (products.length > 0) {
+    if (allProducts.length > 0) {
       const highestPrice = Math.ceil(
-        Math.max(...products.map(product => product.price))
+        Math.max(...allProducts.map(product => product.price))
       );
       setMaxPrice(highestPrice);
       setPriceRange([0, highestPrice]);
     }
-  }, [products]);
+  }, [category, searchTerm]);
 
   // Handle filtering and sorting
   useEffect(() => {
     let result = [...products];
     
-    // Filter by category
-    if (activeCategory !== 'all') {
+    // Filter by category if not already filtered by prop
+    if (!category && activeCategory !== 'all') {
       result = result.filter(product => product.category === activeCategory);
     }
     

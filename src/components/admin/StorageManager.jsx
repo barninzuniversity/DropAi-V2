@@ -1,290 +1,244 @@
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { FiPackage, FiAlertTriangle, FiPlus, FiMinus, FiSave, FiRefreshCw } from 'react-icons/fi'
+import React, { useState, useEffect } from 'react';
+import { FiSave, FiPlus, FiMinus, FiRefreshCw, FiCheck, FiDatabase } from 'react-icons/fi';
+import { updateStock, getProducts, forceSaveInventory, bulkUpdateStock, getLastSaveTime } from '../../utils/inventoryService';
 
-const StorageManager = ({ products, onUpdateStock }) => {
-  const [stockUpdates, setStockUpdates] = useState({})
-  const [filter, setFilter] = useState('all') // 'all', 'low', 'out'
-  const [searchTerm, setSearchTerm] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  
-  // Initialize stock updates
+const StorageManager = ({ products, refreshProducts }) => {
+  const [stockUpdates, setStockUpdates] = useState({});
+  const [lastSaveTime, setLastSaveTime] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Load last save time on component mount
   useEffect(() => {
-    const initialUpdates = {}
-    products.forEach(product => {
-      initialUpdates[product.id] = 0
-    })
-    setStockUpdates(initialUpdates)
-  }, [products])
-  
-  // Filter products based on stock status and search term
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    if (filter === 'low') {
-      return product.stock < 10 && matchesSearch
-    } else if (filter === 'out') {
-      return product.stock === 0 && matchesSearch
+    setLastSaveTime(getLastSaveTime());
+  }, []);
+
+  // Handle stock input change
+  const handleStockChange = (productId, newValue) => {
+    setStockUpdates({
+      ...stockUpdates,
+      [productId]: parseInt(newValue, 10) || 0
+    });
+  };
+
+  // Increment stock value
+  const incrementStock = (productId, currentStock) => {
+    const currentUpdate = stockUpdates[productId] !== undefined ? stockUpdates[productId] : currentStock;
+    setStockUpdates({
+      ...stockUpdates,
+      [productId]: currentUpdate + 1
+    });
+  };
+
+  // Decrement stock value
+  const decrementStock = (productId, currentStock) => {
+    const currentUpdate = stockUpdates[productId] !== undefined ? stockUpdates[productId] : currentStock;
+    const newValue = Math.max(0, currentUpdate - 1); // Prevent negative stock
+    setStockUpdates({
+      ...stockUpdates,
+      [productId]: newValue
+    });
+  };
+
+  // Reset stock value to original
+  const resetStock = (productId, originalStock) => {
+    const updates = { ...stockUpdates };
+    delete updates[productId];
+    setStockUpdates(updates);
+  };
+
+  // Apply a single stock update
+  const applyStockUpdate = (productId) => {
+    if (stockUpdates[productId] !== undefined) {
+      updateStock(productId, stockUpdates[productId]);
+      
+      // Remove from pending updates
+      const updates = { ...stockUpdates };
+      delete updates[productId];
+      setStockUpdates(updates);
+      
+      // Refresh the product list
+      refreshProducts();
+      
+      // Update last save time
+      setLastSaveTime(getLastSaveTime());
+      
+      // Show success indicator briefly
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    }
+  };
+
+  // Save all pending stock updates
+  const saveAllUpdates = () => {
+    if (Object.keys(stockUpdates).length === 0) {
+      return;
     }
     
-    return matchesSearch
-  })
-  
-  // Handle stock adjustment
-  const handleStockChange = (productId, amount) => {
-    setStockUpdates(prev => ({
-      ...prev,
-      [productId]: (prev[productId] || 0) + amount
-    }))
-  }
-  
-  // Reset a specific product's stock update
-  const resetStockUpdate = (productId) => {
-    setStockUpdates(prev => ({
-      ...prev,
-      [productId]: 0
-    }))
-  }
-  
-  // Apply all stock updates
-  const applyStockUpdates = () => {
-    setIsLoading(true)
+    const updates = Object.entries(stockUpdates).map(([id, stock]) => ({
+      id: parseInt(id, 10),
+      stock
+    }));
     
-    // Simulate API call delay
-    setTimeout(() => {
-      Object.entries(stockUpdates).forEach(([productId, change]) => {
-        if (change !== 0) {
-          const product = products.find(p => p.id === parseInt(productId))
-          if (product) {
-            const newStock = Math.max(0, product.stock + change)
-            onUpdateStock(parseInt(productId), newStock)
-          }
-        }
-      })
-      
-      // Reset all stock updates
-      const resetUpdates = {}
-      products.forEach(product => {
-        resetUpdates[product.id] = 0
-      })
-      setStockUpdates(resetUpdates)
-      setIsLoading(false)
-    }, 800)
-  }
-  
-  // Calculate stock status for progress bar
-  const getStockStatus = (stock) => {
-    if (stock === 0) return { color: 'bg-red-500', label: 'Out of Stock' }
-    if (stock < 5) return { color: 'bg-red-400', label: 'Critical' }
-    if (stock < 10) return { color: 'bg-amber-500', label: 'Low' }
-    if (stock < 20) return { color: 'bg-amber-400', label: 'Medium' }
-    return { color: 'bg-green-500', label: 'Good' }
-  }
-  
-  // Calculate progress percentage (max at 100 units)
-  const getStockPercentage = (stock) => {
-    return Math.min(100, (stock / 100) * 100)
-  }
-  
+    bulkUpdateStock(updates);
+    setStockUpdates({});
+    refreshProducts();
+    
+    // Update last save time
+    setLastSaveTime(getLastSaveTime());
+    
+    // Show success indicator briefly
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  // Format date for display
+  const formatDate = (isoString) => {
+    if (!isoString) return 'Never';
+    
+    try {
+      const date = new Date(isoString);
+      return new Intl.DateTimeFormat('en-US', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      }).format(date);
+    } catch (e) {
+      return 'Unknown';
+    }
+  };
+
+  // Force save inventory
+  const handleForceSave = () => {
+    forceSaveInventory();
+    setLastSaveTime(getLastSaveTime());
+    
+    // Show success indicator briefly
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <h2 className="text-2xl font-bold">Storage Management</h2>
-        
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1 rounded-md text-sm ${filter === 'all' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+    <div className="bg-white shadow-md rounded-lg p-4 mb-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-bold text-gray-800">Inventory Management</h2>
+        <div className="flex items-center">
+          <span className="text-sm text-gray-500 mr-2">
+            Last saved: {formatDate(lastSaveTime)}
+          </span>
+          <button 
+            onClick={handleForceSave}
+            className="p-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+            title="Force save inventory"
           >
-            All Items
+            <FiDatabase size={16} />
           </button>
-          <button
-            onClick={() => setFilter('low')}
-            className={`px-3 py-1 rounded-md text-sm ${filter === 'low' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-700'}`}
-          >
-            Low Stock
-          </button>
-          <button
-            onClick={() => setFilter('out')}
-            className={`px-3 py-1 rounded-md text-sm ${filter === 'out' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700'}`}
-          >
-            Out of Stock
-          </button>
+          {saveSuccess && (
+            <span className="ml-2 text-green-500 flex items-center">
+              <FiCheck className="mr-1" /> Saved
+            </span>
+          )}
         </div>
       </div>
       
-      {/* Search */}
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Search products..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-        />
-      </div>
-      
-      {/* Stock Updates Summary */}
-      {Object.values(stockUpdates).some(value => value !== 0) && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg"
-        >
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="font-semibold text-blue-800">Pending Stock Updates</h3>
-              <p className="text-sm text-blue-600">
-                {Object.values(stockUpdates).filter(value => value !== 0).length} products have pending changes
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  const resetUpdates = {}
-                  products.forEach(product => {
-                    resetUpdates[product.id] = 0
-                  })
-                  setStockUpdates(resetUpdates)
-                }}
-                className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-md text-sm flex items-center gap-1"
-              >
-                <FiRefreshCw size={14} /> Reset All
-              </button>
-              <button
-                onClick={applyStockUpdates}
-                disabled={isLoading}
-                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm flex items-center gap-1"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1"></div>
-                    Updating...
-                  </>
-                ) : (
-                  <>
-                    <FiSave size={14} /> Apply Changes
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </motion.div>
+      {Object.keys(stockUpdates).length > 0 && (
+        <div className="mb-4 flex justify-between items-center bg-blue-50 p-2 rounded">
+          <span className="text-sm text-blue-700">You have {Object.keys(stockUpdates).length} unsaved changes</span>
+          <button 
+            onClick={saveAllUpdates}
+            className="btn btn-sm btn-primary"
+          >
+            <FiSave className="mr-1" /> Save All
+          </button>
+        </div>
       )}
       
-      {/* Products List */}
-      <div className="space-y-4">
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            No products found. {searchTerm ? 'Try adjusting your search.' : ''}
-          </div>
-        ) : (
-          filteredProducts.map(product => {
-            const stockStatus = getStockStatus(product.stock)
-            const stockPercentage = getStockPercentage(product.stock)
-            const pendingUpdate = stockUpdates[product.id] || 0
-            const projectedStock = Math.max(0, product.stock + pendingUpdate)
-            const projectedStatus = getStockStatus(projectedStock)
-            
-            return (
-              <motion.div 
-                key={product.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="border border-gray-200 rounded-lg p-4"
-              >
-                <div className="flex flex-col md:flex-row md:items-center gap-4">
-                  {/* Product Info */}
-                  <div className="flex items-center flex-grow">
-                    <div className="h-16 w-16 flex-shrink-0 mr-4 bg-gray-100 rounded-md overflow-hidden">
-                      <img 
-                        src={product.image} 
-                        alt={product.name} 
-                        className="h-full w-full object-contain p-2"
-                        onError={(e) => e.target.src = 'https://via.placeholder.com/80'}
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Product
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Current Stock
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {products.map(product => {
+              const hasChanges = stockUpdates[product.id] !== undefined;
+              const currentStock = hasChanges ? stockUpdates[product.id] : product.stock;
+              
+              return (
+                <tr key={product.id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 flex-shrink-0">
+                        <img className="h-10 w-10 rounded-full object-cover" src={product.image} alt="" />
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                        <div className="text-sm text-gray-500">ID: {product.id}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <input
+                        type="number"
+                        min="0"
+                        value={currentStock}
+                        onChange={(e) => handleStockChange(product.id, e.target.value)}
+                        className={`w-20 p-1 border rounded text-center ${hasChanges ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'}`}
                       />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">{product.name}</h3>
-                      <div className="text-sm text-gray-500">ID: {product.id}</div>
-                      <div className="text-sm">
-                        <span className="font-medium">Category:</span> {product.category}
+                      <div className="flex flex-col ml-2">
+                        <button 
+                          onClick={() => incrementStock(product.id, product.stock)}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          <FiPlus size={14} />
+                        </button>
+                        <button 
+                          onClick={() => decrementStock(product.id, product.stock)}
+                          className="text-gray-500 hover:text-gray-700 mt-1"
+                        >
+                          <FiMinus size={14} />
+                        </button>
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Stock Status */}
-                  <div className="w-full md:w-1/3">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Current Stock: {product.stock}</span>
-                      <span className={`font-medium ${product.stock < 10 ? 'text-amber-600' : 'text-green-600'}`}>
-                        {stockStatus.label}
-                      </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <div className="flex space-x-2">
+                      {hasChanges && (
+                        <>
+                          <button
+                            onClick={() => applyStockUpdate(product.id)}
+                            className="text-green-600 hover:text-green-900"
+                            title="Save this change"
+                          >
+                            <FiSave size={16} />
+                          </button>
+                          <button
+                            onClick={() => resetStock(product.id, product.stock)}
+                            className="text-red-600 hover:text-red-900"
+                            title="Reset to original"
+                          >
+                            <FiRefreshCw size={16} />
+                          </button>
+                        </>
+                      )}
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className={`${stockStatus.color} h-2.5 rounded-full transition-all duration-500`}
-                        style={{ width: `${stockPercentage}%` }}
-                      ></div>
-                    </div>
-                    
-                    {pendingUpdate !== 0 && (
-                      <div className="mt-2">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Projected Stock: {projectedStock}</span>
-                          <span className={`font-medium ${projectedStock < 10 ? 'text-amber-600' : 'text-green-600'}`}>
-                            {projectedStatus.label}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                          <div 
-                            className={`${projectedStatus.color} h-2.5 rounded-full transition-all duration-500`}
-                            style={{ width: `${getStockPercentage(projectedStock)}%` }}
-                          ></div>
-                        </div>
-                        <div className="text-xs text-blue-600 mt-1">
-                          {pendingUpdate > 0 ? `+${pendingUpdate}` : pendingUpdate} units pending
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Stock Controls */}
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleStockChange(product.id, -1)}
-                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-100"
-                      disabled={product.stock + (stockUpdates[product.id] || 0) <= 0}
-                    >
-                      <FiMinus size={16} />
-                    </button>
-                    <div className="w-12 text-center font-medium">
-                      {pendingUpdate > 0 && '+'}{pendingUpdate !== 0 ? pendingUpdate : '-'}
-                    </div>
-                    <button
-                      onClick={() => handleStockChange(product.id, 1)}
-                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-100"
-                    >
-                      <FiPlus size={16} />
-                    </button>
-                    {pendingUpdate !== 0 && (
-                      <button
-                        onClick={() => resetStockUpdate(product.id)}
-                        className="p-2 text-gray-500 hover:text-gray-700"
-                      >
-                        <FiRefreshCw size={16} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            )
-          })
-        )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default StorageManager
- 
+export default StorageManager;
