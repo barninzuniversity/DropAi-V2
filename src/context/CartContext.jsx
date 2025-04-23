@@ -8,35 +8,37 @@ const CartContext = createContext(null);
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  
-  // Load cart from localStorage on initial render
-  useEffect(() => {
+  // Initialize cart from localStorage or empty array
+  const [items, setItems] = useState(() => {
     try {
       const savedCart = localStorage.getItem('cart');
-      if (savedCart) {
-        setItems(JSON.parse(savedCart));
-      }
+      return savedCart ? JSON.parse(savedCart) : [];
     } catch (error) {
       console.error('Failed to load cart from localStorage:', error);
-    } finally {
-      setLoading(false);
+      return [];
     }
-  }, []);
+  });
+  
+  const [loading, setLoading] = useState(false);
   
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    if (!loading) {
-      localStorage.setItem('cart', JSON.stringify(items));
-    }
-  }, [items, loading]);
+    localStorage.setItem('cart', JSON.stringify(items));
+  }, [items]);
   
   // Add an item to the cart
   const addItem = (product, quantity = 1) => {
+    if (!product) {
+      console.error("Cannot add undefined or null product to cart");
+      return;
+    }
+    
+    // Ensure we have a valid ID
+    const productId = String(product.id);
+    
     setItems(currentItems => {
       // Check if the item is already in the cart
-      const existingItemIndex = currentItems.findIndex(item => item.id === product.id);
+      const existingItemIndex = currentItems.findIndex(item => String(item.id) === productId);
       
       if (existingItemIndex > -1) {
         // Item exists, update quantity
@@ -57,12 +59,15 @@ export const CartProvider = ({ children }) => {
   
   // Remove an item from the cart
   const removeItem = (productId) => {
+    // Convert ID to string for consistent comparison
+    const idStr = String(productId);
+    
     setItems(currentItems => {
-      const itemToRemove = currentItems.find(item => item.id === productId);
+      const itemToRemove = currentItems.find(item => String(item.id) === idStr);
       if (itemToRemove) {
         toast.success(`Removed ${itemToRemove.name} from cart`);
       }
-      return currentItems.filter(item => item.id !== productId);
+      return currentItems.filter(item => String(item.id) !== idStr);
     });
   };
   
@@ -73,9 +78,12 @@ export const CartProvider = ({ children }) => {
       return;
     }
     
+    // Convert ID to string for consistent comparison
+    const idStr = String(productId);
+    
     setItems(currentItems => 
       currentItems.map(item => 
-        item.id === productId ? { ...item, quantity } : item
+        String(item.id) === idStr ? { ...item, quantity } : item
       )
     );
   };
@@ -88,7 +96,10 @@ export const CartProvider = ({ children }) => {
   
   // Calculate total price
   const calculateTotal = () => {
-    return items.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return items.reduce((total, item) => {
+      const price = item.discountedPrice || item.price;
+      return total + (price * item.quantity);
+    }, 0);
   };
   
   // Calculate total number of items

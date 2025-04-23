@@ -126,6 +126,11 @@ const useAuthStore = create(
           const currentUser = get().user
           const updatedUser = { ...currentUser, ...userData }
           
+          // Validate critical fields
+          if (userData.email && !userData.email.includes('@')) {
+            throw new Error('Please provide a valid email address')
+          }
+          
           set({ 
             user: updatedUser,
             isLoading: false,
@@ -142,8 +147,56 @@ const useAuthStore = create(
         }
       },
       
+      // Update specific user field
+      updateUserField: async (field, value) => {
+        set({ isLoading: true, error: null })
+        try {
+          // Simulate API call
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+          const currentUser = get().user
+          
+          // Field-specific validations
+          if (field === 'email' && !value.includes('@')) {
+            throw new Error('Please provide a valid email address')
+          }
+          
+          if (field === 'name' && value.trim() === '') {
+            throw new Error('Name cannot be empty')
+          }
+          
+          const updatedUser = { 
+            ...currentUser, 
+            [field]: value 
+          }
+          
+          set({ 
+            user: updatedUser,
+            isLoading: false,
+            error: null
+          })
+          
+          return updatedUser
+        } catch (error) {
+          set({ 
+            isLoading: false, 
+            error: error.message || `Failed to update ${field}` 
+          })
+          throw error
+        }
+      },
+      
       // Clear any errors
-      clearError: () => set({ error: null })
+      clearError: () => set({ error: null }),
+      
+      // Reset loading state
+      resetLoadingState: () => set({ isLoading: false }),
+      
+      // Check if user profile is complete
+      isProfileComplete: () => {
+        const user = get().user
+        return user && user.name && user.email && user.avatar
+      }
     }),
     {
       name: 'auth-storage', // unique name for localStorage

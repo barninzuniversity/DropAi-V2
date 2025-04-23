@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Link } from 'react-router-dom'
-import { FiSearch, FiX, FiCpu, FiTrendingUp } from 'react-icons/fi'
+import { Link, useNavigate } from 'react-router-dom'
+import { FiSearch, FiX } from 'react-icons/fi'
 
 // Data
 import { getAllProducts } from '../../data/products'
@@ -12,10 +12,11 @@ const EnhancedSearch = () => {
   const [isSearching, setIsSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [recentSearches, setRecentSearches] = useState([])
-  const [searchSuggestions, setSearchSuggestions] = useState([])
   const [products, setProducts] = useState([])
+  const [selectedResult, setSelectedResult] = useState(-1)
   const searchRef = useRef(null)
   const inputRef = useRef(null)
+  const navigate = useNavigate()
 
   // Load products when component mounts
   useEffect(() => {
@@ -52,40 +53,6 @@ const EnhancedSearch = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Generate search suggestions based on current input
-  useEffect(() => {
-    if (searchTerm.length > 1 && products.length > 0) {
-      // Simulate AI-powered search suggestions
-      const generateSuggestions = () => {
-        // In a real app, this would call an NLP API
-        const categories = [...new Set(products.map(p => p.category))]
-        const tags = [...new Set(products.flatMap(p => p.tags || []))]
-        
-        const matchingCategories = categories
-          .filter(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()))
-          .map(cat => ({ type: 'category', text: cat }))
-        
-        const matchingTags = tags
-          .filter(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-          .map(tag => ({ type: 'tag', text: tag }))
-        
-        // Add some natural language suggestions
-        const nlSuggestions = [
-          { type: 'nl', text: `best ${searchTerm}` },
-          { type: 'nl', text: `${searchTerm} under $100` },
-          { type: 'nl', text: `top rated ${searchTerm}` }
-        ]
-        
-        // Combine and limit suggestions
-        const combined = [...matchingCategories, ...matchingTags, ...nlSuggestions]
-        setSearchSuggestions(combined.slice(0, 5))
-      }
-      
-      generateSuggestions()
-    } else {
-      setSearchSuggestions([])
-    }
-  }, [searchTerm, products])
 
   // Perform search when searchTerm changes
   useEffect(() => {
@@ -93,51 +60,46 @@ const EnhancedSearch = () => {
       setIsSearching(true)
       setShowResults(true)
       
-      // Simulate AI-enhanced search with a delay
+      // Simulate search with a delay
       const searchTimeout = setTimeout(() => {
-        // In a real app, this would be an API call to an NLP search service
-        const performSearch = () => {
-          // Basic search implementation (would be replaced by actual NLP in production)
-          const results = products.filter(product => {
-            const searchLower = searchTerm.toLowerCase()
-            
-            // Check if search term is in product name, description, category, or tags
-            return (
-              product.name.toLowerCase().includes(searchLower) ||
-              product.description.toLowerCase().includes(searchLower) ||
-              product.category.toLowerCase().includes(searchLower) ||
-              (product.tags && product.tags.some(tag => tag.toLowerCase().includes(searchLower)))
-            )
-          })
+        // Basic search implementation
+        const results = products.filter(product => {
+          const searchLower = searchTerm.toLowerCase()
           
-          // Sort results by relevance (simplified version)
-          results.sort((a, b) => {
-            // Products with search term in name are prioritized
-            const aInName = a.name.toLowerCase().includes(searchTerm.toLowerCase())
-            const bInName = b.name.toLowerCase().includes(searchTerm.toLowerCase())
-            
-            if (aInName && !bInName) return -1
-            if (!aInName && bInName) return 1
-            
-            // Then sort by rating
-            return b.rating - a.rating
-          })
-          
-          setSearchResults(results.slice(0, 6)) // Limit to 6 results
-          setIsSearching(false)
-          
-          // Save to recent searches if not already there
-          if (searchTerm.trim() !== '') {
-            setRecentSearches(prev => {
-              const updated = [searchTerm, ...prev.filter(s => s !== searchTerm)].slice(0, 5)
-              localStorage.setItem('recentSearches', JSON.stringify(updated))
-              return updated
-            })
-          }
-        }
+          // Check if search term is in product name, description, category, or tags
+          return (
+            product.name.toLowerCase().includes(searchLower) ||
+            product.description.toLowerCase().includes(searchLower) ||
+            product.category.toLowerCase().includes(searchLower) ||
+            (product.tags && product.tags.some(tag => tag.toLowerCase().includes(searchLower)))
+          )
+        })
         
-        performSearch()
-      }, 500) // Delay to prevent too many searches while typing
+        // Sort results by relevance
+        results.sort((a, b) => {
+          // Products with search term in name are prioritized
+          const aInName = a.name.toLowerCase().includes(searchTerm.toLowerCase())
+          const bInName = b.name.toLowerCase().includes(searchTerm.toLowerCase())
+          
+          if (aInName && !bInName) return -1
+          if (!aInName && bInName) return 1
+          
+          // Then sort by rating
+          return b.rating - a.rating
+        })
+        
+        setSearchResults(results.slice(0, 6)) // Limit to 6 results
+        setIsSearching(false)
+        
+        // Save to recent searches if not already there
+        if (searchTerm.trim() !== '') {
+          setRecentSearches(prev => {
+            const updated = [searchTerm, ...prev.filter(s => s !== searchTerm)].slice(0, 5)
+            localStorage.setItem('recentSearches', JSON.stringify(updated))
+            return updated
+          })
+        }
+      }, 300) // Reduced delay for better responsiveness
       
       return () => clearTimeout(searchTimeout)
     } else {
@@ -148,17 +110,15 @@ const EnhancedSearch = () => {
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value)
+    setSelectedResult(-1)
   }
 
   const handleSearchSubmit = (e) => {
     e.preventDefault()
-    // In a real app, this would navigate to a search results page
-    console.log('Search submitted:', searchTerm)
-  }
-
-  const handleSuggestionClick = (suggestion) => {
-    setSearchTerm(suggestion.text)
-    inputRef.current.focus()
+    if (searchTerm.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchTerm.trim())}`)
+      setShowResults(false)
+    }
   }
 
   const handleRecentSearchClick = (term) => {
@@ -169,12 +129,40 @@ const EnhancedSearch = () => {
   const clearSearch = () => {
     setSearchTerm('')
     setShowResults(false)
+    setSelectedResult(-1)
     inputRef.current.focus()
   }
 
   const clearRecentSearches = () => {
     setRecentSearches([])
     localStorage.removeItem('recentSearches')
+  }
+
+  const navigateToProduct = (productId) => {
+    navigate(`/products/${productId}`)
+    setShowResults(false)
+    setSearchTerm('')
+  }
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e) => {
+    if (!showResults) return
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedResult(prev => Math.min(prev + 1, searchResults.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedResult(prev => Math.max(prev - 1, -1))
+    } else if (e.key === 'Enter' && selectedResult >= 0) {
+      e.preventDefault()
+      if (searchResults[selectedResult]) {
+        navigateToProduct(searchResults[selectedResult].id)
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      setShowResults(false)
+    }
   }
 
   return (
@@ -186,8 +174,9 @@ const EnhancedSearch = () => {
           value={searchTerm}
           onChange={handleSearchChange}
           onFocus={() => setShowResults(true)}
+          onKeyDown={handleKeyDown}
           className="input pl-10 pr-10 w-full"
-          placeholder="Search with AI-powered natural language..."
+          placeholder="Search products..."
           aria-label="Search products"
         />
         <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -212,36 +201,6 @@ const EnhancedSearch = () => {
             transition={{ duration: 0.2 }}
             className="absolute z-50 mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
           >
-            {/* Search Suggestions */}
-            {searchSuggestions.length > 0 && (
-              <div className="p-3 border-b border-gray-100">
-                <div className="flex items-center text-xs text-gray-500 mb-2">
-                  <FiCpu className="mr-1" />
-                  <span>AI Suggestions</span>
-                </div>
-                <ul>
-                  {searchSuggestions.map((suggestion, index) => (
-                    <li key={`${suggestion.type}-${index}`}>
-                      <button
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded flex items-center"
-                      >
-                        <FiSearch className="mr-2 text-gray-400" />
-                        <span>
-                          {suggestion.type === 'category' && (
-                            <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded mr-2">Category</span>
-                          )}
-                          {suggestion.type === 'tag' && (
-                            <span className="text-xs bg-green-100 text-green-800 px-1.5 py-0.5 rounded mr-2">Tag</span>
-                          )}
-                          {suggestion.text}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
 
             {/* Recent Searches */}
             {recentSearches.length > 0 && searchTerm.length === 0 && (
@@ -278,7 +237,7 @@ const EnhancedSearch = () => {
             {isSearching ? (
               <div className="p-4 text-center">
                 <div className="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary-600 mb-2"></div>
-                <p className="text-sm text-gray-500">Searching with AI...</p>
+                <p className="text-sm text-gray-500">Searching...</p>
               </div>
             ) : (
               searchResults.length > 0 && (
@@ -290,13 +249,15 @@ const EnhancedSearch = () => {
                         View All Results
                       </Link>
                     </div>
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {searchResults.map(product => (
+                    <ul>
+                      {searchResults.map((product, index) => (
                         <li key={product.id}>
-                          <Link
-                            to={`/products/${product.id}`}
-                            className="flex items-center p-2 hover:bg-gray-50 rounded-lg"
-                            onClick={() => setShowResults(false)}
+                          <button
+                            onClick={() => navigateToProduct(product.id)}
+                            onMouseEnter={() => setSelectedResult(index)}
+                            className={`w-full text-left flex items-center p-2 ${
+                              selectedResult === index ? 'bg-primary-50' : 'hover:bg-gray-50'
+                            } rounded-lg`}
                           >
                             <div className="w-12 h-12 bg-gray-100 rounded-md overflow-hidden mr-3">
                               <img
@@ -325,7 +286,7 @@ const EnhancedSearch = () => {
                                 )}
                               </div>
                             </div>
-                          </Link>
+                          </button>
                         </li>
                       ))}
                     </ul>

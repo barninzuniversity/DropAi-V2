@@ -198,25 +198,30 @@ const CheckoutPage = ({ products, updateProductStock }) => {
       orderNumber: 'ORD-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0')
     }
 
-    // Process order and handle email notification
+    // Process order
     try {
-      // Import the email service dynamically to avoid issues with SSR
-      const { sendOrderNotification } = await import('../utils/emailService');
-      
-      // Send the order notification email
-      const result = await sendOrderNotification(orderData);
-      
-      // Check if there was an email error but continue with order process
-      if (result && result.success === false) {
-        console.error('Email notification failed:', result.error);
-        // We'll still complete the order even if email fails
-      }
-      
       // Store order items for confirmation page
       sessionStorage.setItem('orderItems', JSON.stringify(items));
       
       // Update inventory for ordered items
       updateInventoryForOrder(items);
+      
+      // Try to send email notification if available
+      try {
+        // Import the email service dynamically to avoid issues with SSR
+        const { sendOrderNotification } = await import('../utils/emailService');
+        
+        // Send the order notification email
+        const result = await sendOrderNotification(orderData);
+        
+        // Check if there was an email error but continue with order process
+        if (result && result.success === false) {
+          console.error('Email notification failed:', result.error);
+        }
+      } catch (emailError) {
+        console.error('Email service error:', emailError);
+        // Continue with order process even if email fails
+      }
       
       // Simulate order processing
       setTimeout(() => {
@@ -232,15 +237,12 @@ const CheckoutPage = ({ products, updateProductStock }) => {
       }, 1500)
     } catch (error) {
       console.error('Order process error:', error);
-      // Still complete the order even if there's an error with the email
-      // Store order items for confirmation page
-      sessionStorage.setItem('orderItems', JSON.stringify(items));
       
-      // Update inventory for ordered items
+      // Still complete the order even if there's an error
+      sessionStorage.setItem('orderItems', JSON.stringify(items));
       updateInventoryForOrder(items);
       
       setTimeout(() => {
-        // Set order completed flag in session storage even if there was an error
         sessionStorage.setItem('orderCompleted', 'true');
         sessionStorage.setItem('orderNumber', orderData.orderNumber);
         sessionStorage.setItem('orderDate', new Date().toLocaleDateString());
@@ -522,11 +524,21 @@ const CheckoutPage = ({ products, updateProductStock }) => {
                     return (
                       <div key={item.id} className="flex items-center py-2 border-b border-gray-100">
                         <div className="w-12 h-12 bg-gray-100 rounded-md overflow-hidden mr-3">
-                          <img 
-                            src={item.image} 
-                            alt={item.name} 
-                            className="w-full h-full object-cover"
-                          />
+                          {item.image ? (
+                            <img 
+                              src={item.image} 
+                              alt={item.name} 
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = '/placeholder-product.png';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400 text-xs">
+                              No image
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1">
                           <h4 className="text-sm font-medium">{item.name}</h4>

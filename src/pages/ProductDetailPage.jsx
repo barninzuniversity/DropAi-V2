@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -7,8 +8,9 @@ import { toast } from 'react-hot-toast'
 // Data
 import { allProducts } from '../data/products'
 
-// Context
+// Context and Store
 import { useCart } from '../context/CartContext'
+import useInventoryStore from '../store/inventoryStore'
 
 // Components
 import ProductRecommendations from '../components/products/ProductRecommendations'
@@ -28,6 +30,9 @@ const ProductDetailPage = () => {
   const [shareStatus, setShareStatus] = useState({ loading: false, success: false, error: '' })
   const { addItem } = useCart()
 
+  // Get inventory store functions
+  const { getStock, isInStock } = useInventoryStore()
+
   useEffect(() => {
     // In a real app, this would be an API call
     const fetchProduct = async () => {
@@ -35,10 +40,24 @@ const ProductDetailPage = () => {
         setLoading(true)
         // Simulate network delay
         setTimeout(() => {
-          const foundProduct = allProducts.find(p => p.id === parseInt(id))
+          // FIX: Try both string and number comparison to handle potential type mismatches
+          const foundProduct = allProducts.find(p => 
+            p.id === id || // Try string comparison first
+            p.id === parseInt(id) || // Try number comparison 
+            String(p.id) === id // Try string conversion
+          )
+          
           if (foundProduct) {
             setProduct(foundProduct)
+            
+            // Initialize inventory for this product if not already done
+            const inventory = useInventoryStore.getState()
+            if (!inventory.products[foundProduct.id]) {
+              inventory.initializeProduct(foundProduct.id, foundProduct.stock || 10)
+            }
           } else {
+            console.error(`Product not found. ID: ${id}, Type: ${typeof id}`)
+            console.log('Available products:', allProducts.map(p => ({ id: p.id, type: typeof p.id })))
             toast.error('Product not found')
           }
           setLoading(false)
@@ -55,6 +74,12 @@ const ProductDetailPage = () => {
 
   const handleAddToCart = () => {
     if (product) {
+      // Check stock before adding to cart
+      if (!isInStock(product.id, quantity)) {
+        toast.error(`Sorry, only ${getStock(product.id)} items in stock.`)
+        return
+      }
+
       // Calculate original price if product has a discount
       if (product.discount > 0) {
         const originalPrice = product.price;
@@ -77,8 +102,11 @@ const ProductDetailPage = () => {
     }
   }
 
+
   const incrementQuantity = () => {
-    const newQuantity = Math.min(99, quantity + 1)
+    // Get current stock from inventory store
+    const currentStock = getStock(product.id)
+    const newQuantity = Math.min(currentStock, quantity + 1)
     setQuantity(newQuantity)
   }
   
@@ -87,8 +115,10 @@ const ProductDetailPage = () => {
     setQuantity(newQuantity)
   }
   
-  const handleQuantityChange = (value) => {
-    const newQuantity = Math.max(1, Math.min(99, quantity + value))
+  const handleQuantityChange = (e) => {
+    const currentStock = getStock(product.id)
+    const value = parseInt(e.target.value) || 1
+    const newQuantity = Math.max(1, Math.min(currentStock, value))
     setQuantity(newQuantity)
   }
 
@@ -105,6 +135,7 @@ const ProductDetailPage = () => {
     setIsShareModalOpen(false)
     setRecipientEmail('')
   }
+
 
   const handleShareSubmit = async (e) => {
     e.preventDefault()
@@ -162,6 +193,25 @@ const ProductDetailPage = () => {
         </div>
       </div>
     )
+  }
+
+  // Get current stock from inventory store
+  const currentStock = getStock(product.id)
+  const inStock = currentStock > 0
+  
+  // Determine stock status text and color
+  let stockStatusText = 'In Stock'
+  let stockStatusColor = 'text-green-700'
+  let stockDotColor = 'bg-green-500'
+  
+  if (currentStock === 0) {
+    stockStatusText = 'Out of Stock'
+    stockStatusColor = 'text-red-700'
+    stockDotColor = 'bg-red-500'
+  } else if (currentStock < 5) {
+    stockStatusText = 'Low Stock'
+    stockStatusColor = 'text-orange-700'
+    stockDotColor = 'bg-orange-500'
   }
 
   return (
@@ -258,54 +308,66 @@ const ProductDetailPage = () => {
 
             <p className="text-gray-700 mb-6">{product.description}</p>
 
-            {/* Stock Status */}
+            {/* Stock Status - Updated to use inventory store */}
             <div className="flex items-center mb-6">
-              <div className={`w-3 h-3 rounded-full ${product.stock > 0 ? 'bg-green-500' : 'bg-red-500'} mr-2`}></div>
-              <span className="text-sm font-medium">
-                {product.stock > 0 ? `In Stock (${product.stock} available)` : 'Out of Stock'}
+              <div className={`w-3 h-3 rounded-full ${stockDotColor} mr-2`}></div>
+              <span className={`text-sm font-medium ${stockStatusColor}`}>
+                {stockStatusText} {inStock && `(${currentStock} available)`}
               </span>
             </div>
 
-            {/* Quantity Selector */}
-            <div className="mb-6">
-              <label className="block text-gray-700 font-medium mb-2">Quantity</label>
-              <div className="flex items-center">
-                <button
-                  onClick={decrementQuantity}
-                  className="p-2 border border-gray-300 rounded-l-md hover:bg-gray-100"
-                  disabled={quantity <= 1}
-                >
-                  <FiMinus />
-                </button>
-                <input
-                  type="number"
-                  min="1"
-                  max="99"
-                  value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                  className="w-16 text-center border-t border-b border-gray-300 py-2 focus:outline-none"
-                />
-                <button
-                  onClick={incrementQuantity}
-                  className="p-2 border border-gray-300 rounded-r-md hover:bg-gray-100"
-                  disabled={quantity >= 99}
-                >
-                  <FiPlus />
-                </button>
+            {/* Quantity Selector - Only shown if in stock */}
+            {inStock && (
+              <div className="mb-6">
+                <label className="block text-gray-700 font-medium mb-2">Quantity</label>
+                <div className="flex items-center">
+                  <button
+                    onClick={decrementQuantity}
+                    className="p-2 border border-gray-300 rounded-l-md hover:bg-gray-100"
+                    disabled={quantity <= 1}
+                  >
+                    <FiMinus />
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max={currentStock}
+                    value={quantity}
+                    onChange={handleQuantityChange}
+                    className="w-16 text-center border-t border-b border-gray-300 py-2 focus:outline-none"
+                  />
+                  <button
+                    onClick={incrementQuantity}
+                    className="p-2 border border-gray-300 rounded-r-md hover:bg-gray-100"
+                    disabled={quantity >= currentStock}
+                  >
+                    <FiPlus />
+                  </button>
+                </div>
+                {quantity > currentStock && (
+                  <p className="mt-1 text-sm text-red-600">
+                    Quantity adjusted to maximum available stock.
+                  </p>
+                )}
               </div>
-            </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <motion.button
                 onClick={handleAddToCart}
-                className="btn btn-primary flex-1 flex items-center justify-center gap-2"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                disabled={product.stock <= 0}
+                className={`flex-1 flex items-center justify-center gap-2 ${
+                  inStock 
+                    ? 'btn btn-primary' 
+                    : 'btn bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300'
+                }`}
+                whileHover={{ scale: inStock ? 1.02 : 1 }}
+                whileTap={{ scale: inStock ? 0.98 : 1 }}
+                disabled={!inStock}
               >
-                <FiShoppingCart /> Add to Cart
+                <FiShoppingCart /> {inStock ? 'Add to Cart' : 'Out of Stock'}
               </motion.button>
+
               <motion.button
                 onClick={handleFavoriteToggle}
                 className={`btn flex-1 flex items-center justify-center gap-2 ${isFavorite ? 'bg-red-500 text-white hover:bg-red-600' : 'btn-outline'}`}
@@ -314,6 +376,7 @@ const ProductDetailPage = () => {
               >
                 <FiHeart className={isFavorite ? 'fill-current' : ''} /> {isFavorite ? 'Saved' : 'Save'}
               </motion.button>
+
               <motion.button
                 onClick={handleShareClick}
                 className="btn btn-outline p-4"
@@ -364,7 +427,7 @@ const ProductDetailPage = () => {
               transition={{ duration: 0.5 }}
             >
               <h2 className="text-2xl font-bold mb-8">You Might Also Like</h2>
-              <ProductRecommendations currentProductId={parseInt(id)} />
+              <ProductRecommendations currentProductId={product.id} />
             </motion.div>
           </div>
         </section>
@@ -465,6 +528,7 @@ const ProductDetailPage = () => {
           </motion.div>
         </div>
       )}
+
     </div>
   )
 }

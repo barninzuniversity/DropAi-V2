@@ -11,6 +11,24 @@ const ProductCard = ({ product }) => {
   const [isFavorite, setIsFavorite] = useState(false)
   const { addItem } = useCartStore()
 
+  // Helper to determine if product has active discount
+  const getActiveDiscount = (product) => {
+    if (product.discounts && product.discounts.length > 0) {
+      // Find the first active discount
+      const activeDiscount = product.discounts.find(d => d.active);
+      return activeDiscount ? activeDiscount.value : 0;
+    }
+    
+    // For backward compatibility with old product structure
+    if (product.discount) return product.discount;
+    
+    return 0;
+  }
+
+  // Calculate discount and final price
+  const discount = getActiveDiscount(product);
+  const hasDiscount = discount > 0;
+  
   // Format price with currency symbol
   const formatPrice = (price) => {
     return `${price.toFixed(2)} TND`
@@ -20,6 +38,10 @@ const ProductCard = ({ product }) => {
   const getDiscountedPrice = (price, discount) => {
     return price - (price * (discount / 100))
   }
+  
+  const finalPrice = hasDiscount 
+    ? getDiscountedPrice(product.price, discount)
+    : product.price;
 
   const handleAddToCart = (e) => {
     e.preventDefault()
@@ -52,9 +74,9 @@ const ProductCard = ({ product }) => {
             animate={{ scale: isHovered ? 1.1 : 1 }}
             transition={{ duration: 0.5 }}
           />
-          {product.discount > 0 && (
+          {hasDiscount && (
             <div className="absolute top-4 right-4 bg-accent-500 text-white text-sm font-bold px-3 py-1 rounded-full z-10">
-              {product.discount}% OFF
+              {discount}% OFF
             </div>
           )}
           
@@ -106,10 +128,10 @@ const ProductCard = ({ product }) => {
           </p>
           
           <div className="mt-auto flex items-center">
-            {product.discount > 0 ? (
+            {hasDiscount ? (
               <>
                 <span className="text-lg font-bold text-primary-600">
-                  {formatPrice(getDiscountedPrice(product.price, product.discount))}
+                  {formatPrice(finalPrice)}
                 </span>
                 <span className="text-sm text-gray-500 line-through ml-2">
                   {formatPrice(product.price)}

@@ -1,21 +1,21 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiX, FiUser, FiMail } from 'react-icons/fi'
+import { FiX, FiUser, FiMail, FiUpload, FiSave } from 'react-icons/fi'
 
 // Store
 import useAuthStore from '../../store/authStore'
 
-// Components
-import ProfileImageUploader from './ProfileImageUploader'
-
 const EditProfileModal = ({ isOpen, onClose }) => {
-  const { user, updateProfile, isLoading, error } = useAuthStore()
+  const { user, updateProfile } = useAuthStore()
   
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     avatar: ''
   })
+  
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState('')
   
   // Initialize form with user data when modal opens
   useEffect(() => {
@@ -28,21 +28,41 @@ const EditProfileModal = ({ isOpen, onClose }) => {
     }
   }, [user, isOpen])
   
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
   
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
+    setIsSubmitting(true)
     
     try {
+      // Check required fields
+      if (!formData.name || !formData.email) {
+        throw new Error('Name and email are required')
+      }
+      
       await updateProfile(formData)
+      setIsSubmitting(false)
       onClose()
     } catch (err) {
+      setError(err.message || 'Failed to update profile')
+      setIsSubmitting(false)
       console.error('Failed to update profile:', err)
     }
   }
+  
+  // Demo avatars for selection
+  const demoAvatars = [
+    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop',
+    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop',
+    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop',
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop',
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop',
+    'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&h=150&fit=crop'
+  ]
   
   // Close modal when clicking outside
   const handleBackdropClick = (e) => {
@@ -83,21 +103,34 @@ const EditProfileModal = ({ isOpen, onClose }) => {
             
             <form onSubmit={handleSubmit} className="p-6">
               <div className="space-y-6">
-                {/* Avatar Upload */}
-                <ProfileImageUploader 
-                  currentImage={formData.avatar} 
-                  onImageChange={(file) => {
-                    if (file) {
-                      // In a real app, this would upload to a server and get a URL back
-                      // For demo, we'll use a FileReader to get a data URL
-                      const reader = new FileReader()
-                      reader.onload = (e) => {
-                        setFormData(prev => ({ ...prev, avatar: e.target.result }))
-                      }
-                      reader.readAsDataURL(file)
-                    }
-                  }} 
-                />
+                {/* Avatar Selection */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Profile Picture</label>
+                  <div className="flex flex-wrap gap-3 mb-3">
+                    {demoAvatars.map((avatar, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${
+                          formData.avatar === avatar ? 'border-primary-500 shadow-md scale-110' : 'border-gray-200'
+                        }`}
+                        onClick={() => setFormData(prev => ({ ...prev, avatar }))}
+                      >
+                        <img 
+                          src={avatar} 
+                          alt={`Avatar option ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    <FiUpload className="mr-1" /> Upload custom image (coming soon)
+                  </button>
+                </div>
                 
                 {/* Name Field */}
                 <div>
@@ -113,9 +146,10 @@ const EditProfileModal = ({ isOpen, onClose }) => {
                       id="name"
                       name="name"
                       value={formData.name}
-                      onChange={handleChange}
+                      onChange={handleInputChange}
                       className="input pl-10"
                       placeholder="Your name"
+                      required
                     />
                   </div>
                 </div>
@@ -134,7 +168,7 @@ const EditProfileModal = ({ isOpen, onClose }) => {
                       id="email"
                       name="email"
                       value={formData.email}
-                      onChange={handleChange}
+                      onChange={handleInputChange}
                       className="input pl-10"
                       placeholder="you@example.com"
                     />
@@ -152,24 +186,25 @@ const EditProfileModal = ({ isOpen, onClose }) => {
                     type="button"
                     onClick={onClose}
                     className="btn btn-outline"
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-primary"
-                    disabled={isLoading}
+                    className="btn btn-primary flex items-center gap-2"
+                    disabled={isSubmitting}
                   >
-                    {isLoading ? (
+                    {isSubmitting ? (
                       <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                        <span className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent"></span>
                         Saving...
                       </>
-                    ) : 'Save Changes'}
+                    ) : (
+                      <>
+                        <FiSave /> Save Changes
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

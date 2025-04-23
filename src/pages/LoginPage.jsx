@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { FiMail, FiLock, FiAlertCircle } from 'react-icons/fi'
 
@@ -8,7 +8,11 @@ import { useAuth } from '../context/AuthContext'
 
 const LoginPage = () => {
   const navigate = useNavigate()
-  const { login, loading, error, clearError } = useAuth()
+  const location = useLocation()
+  const { login, loading, error, clearError, debugLoginAsAdmin } = useAuth()
+  
+  // Get the page to redirect to after login
+  const from = location.state?.from?.pathname || '/account'
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -66,7 +70,8 @@ const LoginPage = () => {
     
     const success = await login(email, password)
     if (success) {
-      navigate('/account')
+      // Redirect to the page they were trying to access, or account page
+      navigate(from, { replace: true })
     }
   }
 
@@ -189,6 +194,26 @@ const LoginPage = () => {
               <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
                 Sign up
               </Link>
+            </p>
+          </div>
+          
+          {/* Debug section */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <h3 className="text-center text-sm font-medium text-gray-500 mb-4">Debug Options</h3>
+            <button
+              type="button"
+              onClick={() => {
+                const success = debugLoginAsAdmin();
+                if (success) {
+                  navigate('/admin', { replace: true });
+                }
+              }}
+              className="w-full py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-gray-50 hover:bg-gray-100"
+            >
+              Debug: Login as Admin
+            </button>
+            <p className="mt-2 text-xs text-gray-500 text-center">
+              This button bypasses normal login for testing purposes.
             </p>
           </div>
         </motion.div>

@@ -89,10 +89,9 @@ const CartPage = ({ products, updateProductStock }) => {
   }
   
   // Handle proceeding to checkout
-  const handleProceedToCheckout = (e) => {
+  const handleProceedToCheckout = () => {
     // Check if user is authenticated
     if (!isAuthenticated) {
-      e.preventDefault()
       addNotification({
         type: 'error',
         message: 'Please log in to checkout'
@@ -106,7 +105,6 @@ const CartPage = ({ products, updateProductStock }) => {
       const product = products.find(p => p.id === item.id)
       return !product || product.stock < item.quantity
     })) {
-      e.preventDefault()
       addNotification({
         type: 'error',
         message: 'Some items in your cart are out of stock or have insufficient quantity.'
@@ -350,19 +348,19 @@ const CartPage = ({ products, updateProductStock }) => {
                   </div>
                 </div>
 
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <button 
-                    onClick={handleProceedToCheckout}
-                    className={`btn btn-primary w-full flex items-center justify-center gap-2 ${
-                      products && items.some(item => {
-                        const product = products.find(p => p.id === item.id)
-                        return product && product.stock < item.quantity
-                      }) ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    Proceed to Checkout <FiArrowRight />
-                  </button>
-                </motion.div>
+                <motion.button
+                  onClick={handleProceedToCheckout}
+                  className={`btn btn-primary w-full flex items-center justify-center gap-2 ${
+                    products && items.some(item => {
+                      const product = products.find(p => p.id === item.id)
+                      return product && product.stock < item.quantity
+                    }) ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Proceed to Checkout <FiArrowRight />
+                </motion.button>
                 
               </div>
             </motion.div>

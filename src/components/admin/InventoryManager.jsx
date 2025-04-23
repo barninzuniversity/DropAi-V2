@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { FiTrash2, FiEdit2, FiPlus, FiEye, FiPackage } from 'react-icons/fi';
-import { deleteProduct } from '../../utils/inventoryService';
+import { FiTrash2, FiEdit2, FiPlus, FiEye, FiPackage, FiPlusCircle, FiMinusCircle } from 'react-icons/fi';
+import { deleteProduct, updateProductStock } from '../../utils/inventoryService';
 
 const InventoryManager = ({ products, refreshProducts }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdatingStock, setIsUpdatingStock] = useState(false);
 
   // Handle sort click
   const handleSort = (field) => {
@@ -38,6 +39,29 @@ const InventoryManager = ({ products, refreshProducts }) => {
       } finally {
         setIsDeleting(false);
       }
+    }
+  };
+
+  // Handle stock update
+  const updateStock = (productId, newStock) => {
+    if (newStock < 0) return; // Prevent negative stock
+    
+    setIsUpdatingStock(true);
+    try {
+      // Assuming updateProductStock is implemented in inventoryService
+      const result = updateProductStock(productId, newStock);
+      
+      if (result.success) {
+        // Refresh products from storage
+        refreshProducts();
+      } else {
+        alert(`Failed to update stock: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Error updating stock:', error);
+      alert('An error occurred while updating the stock');
+    } finally {
+      setIsUpdatingStock(false);
     }
   };
 
@@ -168,15 +192,35 @@ const InventoryManager = ({ products, refreshProducts }) => {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      (product.stock || 0) === 0
-                        ? 'bg-red-100 text-red-800'
-                        : (product.stock || 0) < 10
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      {product.stock || 0} in stock
-                    </span>
+                    <div className="flex items-center">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        (product.stock || 0) === 0
+                          ? 'bg-red-100 text-red-800'
+                          : (product.stock || 0) < 10
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {product.stock || 0} in stock
+                      </span>
+                      <div className="ml-3 flex space-x-1">
+                        <button
+                          onClick={() => updateStock(product.id, (product.stock || 0) + 1)}
+                          disabled={isUpdatingStock}
+                          className="text-green-600 hover:text-green-900 p-1"
+                          title="Increase Stock"
+                        >
+                          <FiPlusCircle size={16} />
+                        </button>
+                        <button
+                          onClick={() => updateStock(product.id, Math.max(0, (product.stock || 0) - 1))}
+                          disabled={isUpdatingStock || (product.stock || 0) === 0}
+                          className="text-red-600 hover:text-red-900 p-1"
+                          title="Decrease Stock"
+                        >
+                          <FiMinusCircle size={16} />
+                        </button>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                     <button
@@ -215,9 +259,23 @@ const InventoryManager = ({ products, refreshProducts }) => {
         </table>
       </div>
       
-      {/* Products count */}
-      <div className="mt-4 text-sm text-gray-500">
-        Showing {filteredProducts.length} of {products.length} products
+      {/* Products count and inventory summary */}
+      <div className="mt-4 flex justify-between">
+        <div className="text-sm text-gray-500">
+          Showing {filteredProducts.length} of {products.length} products
+        </div>
+        <div className="text-sm">
+          <span className="font-medium">Inventory Summary: </span>
+          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium mr-2">
+            {products.filter(p => (p.stock || 0) > 10).length} Well Stocked
+          </span>
+          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium mr-2">
+            {products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= 10).length} Low Stock
+          </span>
+          <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
+            {products.filter(p => (p.stock || 0) === 0).length} Out of Stock
+          </span>
+        </div>
       </div>
       
       {/* Button to refresh data */}

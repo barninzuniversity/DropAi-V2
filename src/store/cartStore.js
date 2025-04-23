@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { processProductPrices, calculateDiscountedPrice } from '../utils/priceFormatter'
 import { validateStockAvailability, processOrder } from '../utils/inventoryService'
+import useInventoryStore from './inventoryStore'
 
 const useCartStore = create(
   persist(
@@ -9,11 +10,28 @@ const useCartStore = create(
       items: [],
       isCheckingOut: false,
       checkoutError: null,
+      isOpen: false,
       
-      // Add an item to the cart - with proper price processing
+      // Toggle cart open/closed
+      toggleCart: () => set(state => ({ isOpen: !state.isOpen })),
+      
+      // Open cart
+      openCart: () => set({ isOpen: true }),
+      
+      // Close cart
+      closeCart: () => set({ isOpen: false }),
+      
+      // Add an item to the cart - with proper price processing and stock validation
       addItem: (product, quantity = 1) => {
         const { items } = get()
         const itemIndex = items.findIndex(item => item.id === product.id)
+        
+        // Check if product is in stock before adding
+        const inventoryStore = useInventoryStore.getState()
+        if (!inventoryStore.isInStock(product.id, quantity)) {
+          console.warn(`Product ${product.id} is out of stock or has insufficient quantity`)
+          return false
+        }
         
         // Process product prices to ensure consistent structure
         const processedProduct = processProductPrices(product);
@@ -34,6 +52,8 @@ const useCartStore = create(
             }]
           })
         }
+        
+        return true
       },
       // Remove an item from the cart
       removeItem: (productId) => {
@@ -52,7 +72,14 @@ const useCartStore = create(
           set({
             items: items.filter(item => item.id !== productId)
           })
-          return
+          return false
+        }
+        
+        // Check if we have enough stock for the new quantity
+        const inventoryStore = useInventoryStore.getState()
+        if (!inventoryStore.isInStock(productId, quantity)) {
+          console.warn(`Cannot update quantity: Product ${productId} has insufficient stock`)
+          return false
         }
         
         const updatedItems = items.map(item => 
@@ -60,6 +87,7 @@ const useCartStore = create(
         )
         
         set({ items: updatedItems })
+        return true
       },
       
       // Update item discount
@@ -117,7 +145,7 @@ const useCartStore = create(
         return getCartOriginalTotal() - getCartTotal();
       },
       
-      // Complete checkout process
+      // Complete checkout process with inventory deduction
       checkout: async (orderDetails, refreshProductsCallback) => {
         const { items } = get();
         set({ isCheckingOut: true, checkoutError: null });
@@ -125,22 +153,23 @@ const useCartStore = create(
         try {
           // Format ordered items for inventory processing
           const orderedItems = items.map(item => ({
-            productId: item.id,
+            id: item.id,
             quantity: item.quantity
           }));
           
-          // Process the order using the inventory service
-          const orderResult = processOrder(orderedItems);
+          // Deduct from inventory using inventory store
+          const inventoryStore = useInventoryStore.getState();
+          const deductionResult = inventoryStore.bulkDeductFromStock(orderedItems);
           
-          if (!orderResult.success) {
+          if (!deductionResult.success) {
             set({ 
               isCheckingOut: false, 
               checkoutError: {
-                message: orderResult.message || 'Failed to process order',
-                insufficientItems: orderResult.insufficientItems
+                message: deductionResult.message || 'Failed to process order',
+                insufficientItems: deductionResult.insufficientItems
               }
             });
-            return { success: false, error: orderResult.message };
+            return { success: false, error: deductionResult.message };
           }
           
           // Order successful - refresh products in the UI

@@ -3,14 +3,16 @@ import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { FiFilter, FiX, FiChevronDown, FiGrid, FiList } from 'react-icons/fi'
 
-// Data
-import { allProducts } from '../data/products'
+// Import ProductContext instead of hardcoded data
+import { useProducts } from '../context/ProductContext'
 
 // Components
 import ProductCard from '../components/products/ProductCard'
 
 const ProductsPage = () => {
-  const [products, setProducts] = useState([])
+  // Use shared products from context instead of hardcoded data
+  const { products: allProducts } = useProducts()
+  
   const [filteredProducts, setFilteredProducts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -30,26 +32,21 @@ const ProductsPage = () => {
   // Categories derived from products
   const categories = [...new Set(allProducts.map(product => product.category))]
 
-  // Fetch products (simulating API call)
+  // Load products from context
   useEffect(() => {
-    const fetchProducts = async () => {
-      setIsLoading(true)
-      // In a real app, this would be an API call
-      setTimeout(() => {
-        setProducts(allProducts)
-        setFilteredProducts(allProducts)
-        setIsLoading(false)
-      }, 800)
-    }
-
-    fetchProducts()
-  }, [])
+    setIsLoading(true)
+    // Short timeout to simulate loading, can be removed in production
+    setTimeout(() => {
+      setFilteredProducts(allProducts)
+      setIsLoading(false)
+    }, 300)
+  }, [allProducts])
 
   // Apply filters and sorting
   useEffect(() => {
-    if (products.length === 0) return
+    if (allProducts.length === 0) return
 
-    let result = [...products]
+    let result = [...allProducts]
 
     // Apply category filter
     if (filters.categories.length > 0) {
@@ -58,38 +55,53 @@ const ProductsPage = () => {
 
     // Apply price range filter
     result = result.filter(product => {
-      const price = product.discount > 0 
-        ? product.price - (product.price * (product.discount / 100))
+      // Calculate discounted price if product has active discounts
+      const hasActiveDiscount = product.discounts && 
+                               product.discounts.length > 0 && 
+                               product.discounts[0].active;
+                               
+      const discount = hasActiveDiscount ? product.discounts[0].value : 0;
+      
+      const price = discount > 0 
+        ? product.price - (product.price * (discount / 100))
         : product.price
+        
       return price >= filters.priceRange[0] && price <= filters.priceRange[1]
     })
 
-    // Apply rating filter
+    // Apply rating filter if the property exists
     if (filters.rating > 0) {
-      result = result.filter(product => product.rating >= filters.rating)
+      result = result.filter(product => (product.rating || 0) >= filters.rating)
     }
 
     // Apply sorting
     switch (sortBy) {
       case 'price-low':
         result.sort((a, b) => {
-          const priceA = a.discount > 0 ? a.price - (a.price * (a.discount / 100)) : a.price
-          const priceB = b.discount > 0 ? b.price - (b.price * (b.discount / 100)) : b.price
+          const discountA = a.discounts && a.discounts.length > 0 && a.discounts[0].active ? a.discounts[0].value : 0
+          const discountB = b.discounts && b.discounts.length > 0 && b.discounts[0].active ? b.discounts[0].value : 0
+          
+          const priceA = discountA > 0 ? a.price - (a.price * (discountA / 100)) : a.price
+          const priceB = discountB > 0 ? b.price - (b.price * (discountB / 100)) : b.price
           return priceA - priceB
         })
         break
       case 'price-high':
         result.sort((a, b) => {
-          const priceA = a.discount > 0 ? a.price - (a.price * (a.discount / 100)) : a.price
-          const priceB = b.discount > 0 ? b.price - (b.price * (b.discount / 100)) : b.price
+          const discountA = a.discounts && a.discounts.length > 0 && a.discounts[0].active ? a.discounts[0].value : 0
+          const discountB = b.discounts && b.discounts.length > 0 && b.discounts[0].active ? b.discounts[0].value : 0
+          
+          const priceA = discountA > 0 ? a.price - (a.price * (discountA / 100)) : a.price
+          const priceB = discountB > 0 ? b.price - (b.price * (discountB / 100)) : b.price
           return priceB - priceA
         })
         break
       case 'rating':
-        result.sort((a, b) => b.rating - a.rating)
+        // If rating exists, sort by it
+        result.sort((a, b) => (b.rating || 0) - (a.rating || 0))
         break
       case 'newest':
-        // In a real app, you would sort by date
+        // Sort by ID (higher ID = newer)
         result.sort((a, b) => b.id - a.id)
         break
       default: // 'featured'
@@ -98,7 +110,7 @@ const ProductsPage = () => {
     }
 
     setFilteredProducts(result)
-  }, [products, filters, sortBy])
+  }, [allProducts, filters, sortBy])
 
   const handleCategoryChange = (category) => {
     setFilters(prev => {

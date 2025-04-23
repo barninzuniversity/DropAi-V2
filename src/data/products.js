@@ -1,143 +1,195 @@
-/**
- * Sample product data for e-commerce application
- * This file contains mock product data that can be used for development and testing
- */
-
-export const products = [
+// Sample product data
+export const allProducts = [
   {
-    id: 1,
-    name: "Wireless Bluetooth Headphones",
-    price: 59.99,
-    description: "High-quality wireless headphones with noise cancellation and long battery life. Perfect for music lovers and travelers.",
-    category: "Electronics",
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-    inStock: true,
-    featured: true,
-    rating: 4.5,
-    reviews: 120
-  },
-  {
-    id: 2,
-    name: "Smartphone Stand & Charger",
-    price: 29.99,
-    description: "Adjustable smartphone stand with built-in wireless charging capability. Compatible with most smartphones.",
-    category: "Accessories",
-    image: "https://images.unsplash.com/photo-1586953208448-b95a79798f07?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-    inStock: true,
-    featured: true,
-    rating: 4.2,
-    reviews: 85
-  },
-  {
-    id: 3,
-    name: "Smart Home Hub",
-    price: 129.99,
-    description: "Control your smart home devices with ease. Compatible with Alexa, Google Assistant, and Apple HomeKit.",
-    category: "Electronics",
-    image: "https://images.unsplash.com/photo-1558002038-1055907df827?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-    inStock: true,
-    featured: false,
-    rating: 4.0,
-    reviews: 62
-  },
-  {
-    id: 4,
-    name: "Ultra-Slim Laptop Bag",
-    price: 49.99,
-    description: "Sleek, durable, and water-resistant laptop bag with multiple compartments for accessories.",
-    category: "Accessories",
-    image: "https://images.unsplash.com/photo-1547949003-9792a18a2601?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-    inStock: true,
-    featured: false,
-    rating: 4.7,
-    reviews: 93
-  },
-  {
-    id: 5,
-    name: "Fitness Smart Watch",
-    price: 89.99,
-    description: "Track your fitness goals, monitor heart rate, and receive notifications. Water-resistant and long battery life.",
-    category: "Wearables",
-    image: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1172&q=80",
-    inStock: true,
-    featured: true,
-    rating: 4.6,
-    reviews: 215
-  },
-  {
-    id: 6,
-    name: "Portable Power Bank",
-    price: 39.99,
-    description: "High-capacity power bank with fast charging capability. Charge multiple devices simultaneously.",
-    category: "Electronics",
-    image: "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-    inStock: true,
-    featured: false,
-    rating: 4.3,
-    reviews: 78
-  },
-  {
-    id: 7,
-    name: "Mechanical Keyboard",
-    price: 79.99,
-    description: "Tactile mechanical keyboard with customizable RGB lighting. Perfect for gamers and programmers.",
-    category: "Computer Accessories",
-    image: "https://images.unsplash.com/photo-1595225476474-57ff36594612?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-    inStock: false,
-    featured: false,
-    rating: 4.8,
-    reviews: 156
-  },
-  {
-    id: 8,
-    name: "Ergonomic Office Chair",
-    price: 189.99,
-    description: "Comfortable ergonomic chair with lumbar support and adjustable features. Ideal for long working hours.",
-    category: "Furniture",
-    image: "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-    inStock: true,
-    featured: false,
-    rating: 4.4,
-    reviews: 112
-  },
-  {
-    id: 9,
-    name: "Premium Wireless Earbuds",
-    price: 129.99,
-    description: "High-quality wireless earbuds with noise cancellation and crystal-clear sound. Perfect for music lovers and professionals on the go.",
-    category: "Electronics",
-    image: "https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80",
-    inStock: true,
-    featured: true,
-    rating: 4.8,
-    reviews: 245
-  },
-  {
-    id: 10,
-    name: "Adjustable Standing Desk",
+    id: "1", // Consistent string IDs
+    name: "Wireless Noise-Cancelling Headphones",
     price: 299.99,
-    description: "Electric height-adjustable desk for a healthier work environment. Smooth transition between sitting and standing positions.",
-    category: "Furniture",
-    image: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80",
-    inStock: true,
-    featured: false,
+    discount: 15,
+    category: "Audio",
+    description: "Premium wireless headphones with active noise cancellation, 30-hour battery life, and comfortable over-ear design.",
+    features: [
+      "Active Noise Cancellation",
+      "30-hour battery life",
+      "Bluetooth 5.2 connectivity",
+      "Built-in voice assistant",
+      "Foldable design"
+    ],
+    specifications: {
+      brand: "SoundMaster",
+      model: "WH-1000XM5",
+      weight: "250g",
+      batteryLife: "30 hours",
+      warranty: "2 years"
+    },
+    rating: 4.8,
+    reviews: 254,
+    stock: 15,
+    images: [
+      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e",
+      "https://images.unsplash.com/photo-1583394838336-acd977736f90",
+      "https://images.unsplash.com/photo-1487215078519-e21cc028cb29"
+    ]
+  },
+  {
+    id: "2",
+    name: "Smart Fitness Tracker Watch",
+    price: 199.95,
+    discount: 0,
+    category: "Wearables",
+    description: "Advanced fitness tracking smartwatch with heart rate monitoring, GPS, sleep tracking, and 7-day battery life.",
+    features: [
+      "24/7 heart rate monitoring",
+      "Built-in GPS",
+      "Sleep quality analysis",
+      "Water resistant to 50m",
+      "7-day battery life"
+    ],
+    specifications: {
+      brand: "FitTech",
+      model: "Pulse Pro",
+      weight: "48g",
+      displaySize: "1.4 inches",
+      warranty: "1 year"
+    },
+    rating: 4.6,
+    reviews: 189,
+    stock: 8,
+    images: [
+      "https://images.unsplash.com/photo-1523275335684-37898b6baf30",
+      "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1",
+      "https://images.unsplash.com/photo-1559311648-d9ef129ab432"
+    ]
+  },
+  {
+    id: "3",
+    name: "Professional Camera Drone",
+    price: 1299.00,
+    discount: 10,
+    category: "Photography",
+    description: "High-performance drone with 4K camera, 3-axis gimbal, obstacle avoidance, and 30-minute flight time.",
+    features: [
+      "4K camera with 3-axis gimbal",
+      "Intelligent obstacle avoidance",
+      "30-minute flight time",
+      "5km transmission range",
+      "Follow-me mode"
+    ],
+    specifications: {
+      brand: "AirVision",
+      model: "Explorer Pro",
+      weight: "950g",
+      maxSpeed: "65 km/h",
+      warranty: "1 year"
+    },
     rating: 4.9,
-    reviews: 87
+    reviews: 98,
+    stock: 5,
+    images: [
+      "https://images.unsplash.com/photo-1524143986875-3b098d911b80",
+      "https://images.unsplash.com/photo-1507582020474-9a35b7d455d9",
+      "https://images.unsplash.com/photo-1516035069371-29a1b244cc32"
+    ]
+  },
+  {
+    id: "4",
+    name: "Ultra-Thin Laptop",
+    price: 1499.00,
+    discount: 5,
+    category: "Computers",
+    description: "Premium ultra-thin laptop with 14-inch 4K display, 16GB RAM, 1TB SSD, and all-day battery life.",
+    features: [
+      "14-inch 4K touch display",
+      "16GB RAM, 1TB SSD",
+      "Intel Core i7 processor",
+      "12-hour battery life",
+      "Backlit keyboard"
+    ],
+    specifications: {
+      brand: "TechPro",
+      model: "UltraBook X14",
+      weight: "1.2kg",
+      processor: "Intel Core i7-1165G7",
+      warranty: "2 years"
+    },
+    rating: 4.7,
+    reviews: 156,
+    stock: 12,
+    images: [
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853",
+      "https://images.unsplash.com/photo-1531297484001-80022131f5a1",
+      "https://images.unsplash.com/photo-1544731612-de7f96afe55f"
+    ]
+  },
+  {
+    id: "5",
+    name: "Ergonomic Office Chair",
+    price: 349.95,
+    discount: 0,
+    category: "Furniture",
+    description: "Fully adjustable ergonomic office chair with lumbar support, breathable mesh back, and padded armrests.",
+    features: [
+      "Adjustable lumbar support",
+      "Breathable mesh back",
+      "Padded armrests",
+      "360° swivel",
+      "Weight capacity: 150kg"
+    ],
+    specifications: {
+      brand: "ComfortPlus",
+      model: "ErgoFlex Pro",
+      weight: "15kg",
+      material: "Mesh and high-density foam",
+      warranty: "5 years"
+    },
+    rating: 4.5,
+    reviews: 87,
+    stock: 20,
+    images: [
+      "https://images.unsplash.com/photo-1505843513577-22bb7d21e455",
+      "https://images.unsplash.com/photo-1573767291321-c0af2eaf5266",
+      "https://images.unsplash.com/photo-1580480055273-228ff5388ef8"
+    ]
   }
-];
+]
 
-/**
- * Helper function to get all products
- * @returns {Array} All products
- */
-export const getProducts = () => products;
+// Export functions to get products
+export const getProducts = (limit = undefined) => {
+  if (limit) {
+    return allProducts.slice(0, limit);
+  }
+  return allProducts;
+}
 
-/**
- * Helper function to get featured products
- * @returns {Array} Featured products only
- */
-export const getFeaturedProducts = () => products.filter(product => product.featured);
+// Add the getAllProducts function that EnhancedSearch is trying to import
+export const getAllProducts = () => {
+  return allProducts;
+}
 
-// For backward compatibility
-export const getAllProducts = getProducts;
-export const allProducts = products;
+export const getProductById = (id) => {
+  // Ensure we're comparing strings to strings
+  const productId = String(id);
+  return allProducts.find(p => String(p.id) === productId);
+}
+
+export const getRelatedProducts = (productId, limit = 4) => {
+  // Get current product to find its category
+  const currentProduct = getProductById(productId);
+  if (!currentProduct) return [];
+  
+  // Find products in the same category, excluding the current product
+  const relatedProducts = allProducts
+    .filter(p => p.category === currentProduct.category && String(p.id) !== String(productId))
+    .slice(0, limit);
+    
+  // If not enough related products, add random products from other categories
+  if (relatedProducts.length < limit) {
+    const remainingCount = limit - relatedProducts.length;
+    const otherProducts = allProducts
+      .filter(p => p.category !== currentProduct.category && String(p.id) !== String(productId))
+      .slice(0, remainingCount);
+      
+    return [...relatedProducts, ...otherProducts];
+  }
+  
+  return relatedProducts;
+}
