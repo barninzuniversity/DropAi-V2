@@ -230,11 +230,7 @@ const HomePage = () => {
                         alt={product.name}
                         className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
                       />
-                      {product.discount > 0 && (
-                        <div className="absolute top-4 right-4 bg-accent-500 text-white text-sm font-bold px-3 py-1 rounded-full">
-                          {product.discount}% OFF
-                        </div>
-                      )}
+                      {/* Removed discount/sale sign as requested */}
                       <div className="absolute inset-0 bg-black bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                         <Link 
                           to={`/products/${product.id}`}
@@ -280,30 +276,27 @@ const HomePage = () => {
                 // Empty state
                 <div className="col-span-full text-center py-8">
                   <p className="text-gray-500">No featured products available right now. Check back soon!</p>
-                  <Link 
-                    to="/products"
-                    className="btn btn-outline inline-flex items-center mt-4"
-                  >
-                    View All Products <FiArrowRight className="ml-2" />
-                  </Link>
                 </div>
               )}
             </div>
           )}
           
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={productsInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-center mt-12"
-          >
-            <Link 
-              to="/products"
-              className="btn btn-outline inline-flex items-center"
+          {/* Single View All Products button */}
+          {products.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={productsInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="text-center mt-12"
             >
-              View All Products <FiArrowRight className="ml-2" />
-            </Link>
-          </motion.div>
+              <Link 
+                to="/products"
+                className="btn btn-outline inline-flex items-center"
+              >
+                View All Products <FiArrowRight className="ml-2" />
+              </Link>
+            </motion.div>
+          )}
         </div>
       </section>
 
