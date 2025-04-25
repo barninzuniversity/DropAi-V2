@@ -77,14 +77,14 @@ export const getProducts = () => {
 };
 
 /**
- * Get featured products (products with discounts or high ratings)
+ * Get featured products based on high ratings only (not discounts)
  * @returns {Array} Array of featured product objects
  */
 export const getFeaturedProducts = () => {
   const products = getProducts();
   return products.filter(product => 
-    // Featured products criteria: products with a discount or high rating
-    product.discount > 0 || (product.rating && product.rating >= 4.5)
+    // Featured products criteria: high rating products only (4.5+ stars)
+    product.rating && product.rating >= 4.5
   );
 };
 

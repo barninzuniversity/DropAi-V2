@@ -149,6 +149,156 @@ export const allProducts = [
       "https://images.unsplash.com/photo-1573767291321-c0af2eaf5266",
       "https://images.unsplash.com/photo-1580480055273-228ff5388ef8"
     ]
+  },
+  {
+    id: "6",
+    name: "4K Smart TV",
+    price: 899.99,
+    discount: 12,
+    category: "Electronics",
+    description: "55-inch 4K Smart TV with HDR, built-in streaming apps, and voice control.",
+    features: [
+      "4K Ultra HD resolution",
+      "HDR support",
+      "Smart TV features",
+      "Voice control",
+      "Multiple HDMI ports"
+    ],
+    specifications: {
+      brand: "VisionTech",
+      model: "Smart4K-55",
+      screenSize: "55 inches",
+      resolution: "3840 x 2160",
+      warranty: "3 years"
+    },
+    rating: 4.7,
+    reviews: 143,
+    stock: 10,
+    images: [
+      "https://images.unsplash.com/photo-1593784991095-a205069470b6",
+      "https://images.unsplash.com/photo-1571415060716-baff5f717c37",
+      "https://images.unsplash.com/photo-1461151304267-38535e780c79"
+    ]
+  },
+  {
+    id: "7",
+    name: "Smart Home Security Camera",
+    price: 129.99,
+    discount: 0,
+    category: "Smart Home",
+    description: "Wi-Fi enabled security camera with 1080p HD video, night vision, and two-way audio.",
+    features: [
+      "1080p HD video",
+      "Night vision",
+      "Two-way audio",
+      "Motion detection",
+      "Cloud storage"
+    ],
+    specifications: {
+      brand: "SecureView",
+      model: "ProCam 2",
+      resolution: "1920 x 1080",
+      fieldOfView: "130°",
+      warranty: "1 year"
+    },
+    rating: 4.4,
+    reviews: 89,
+    stock: 25,
+    images: [
+      "https://images.unsplash.com/photo-1557324232-b8917d3c3dcb",
+      "https://images.unsplash.com/photo-1583000058680-c76f8b025c49",
+      "https://images.unsplash.com/photo-1558002038-1055907df827"
+    ]
+  },
+  {
+    id: "8",
+    name: "Wireless Gaming Mouse",
+    price: 79.99,
+    discount: 5,
+    category: "Gaming",
+    description: "High-precision wireless gaming mouse with RGB lighting and programmable buttons.",
+    features: [
+      "16000 DPI sensor",
+      "RGB lighting",
+      "8 programmable buttons",
+      "50-hour battery life",
+      "Ergonomic design"
+    ],
+    specifications: {
+      brand: "GameTech",
+      model: "Predator X",
+      weight: "95g",
+      connectivity: "2.4GHz wireless",
+      warranty: "2 years"
+    },
+    rating: 4.8,
+    reviews: 212,
+    stock: 30,
+    images: [
+      "https://images.unsplash.com/photo-1527814050087-3793815479db",
+      "https://images.unsplash.com/photo-1586349906319-47f3ab3b8c7c",
+      "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7"
+    ]
+  },
+  {
+    id: "9",
+    name: "Portable Power Bank",
+    price: 49.99,
+    discount: 0,
+    category: "Accessories",
+    description: "20000mAh portable power bank with fast charging and multiple ports.",
+    features: [
+      "20000mAh capacity",
+      "Fast charging",
+      "Multiple ports",
+      "LED indicator",
+      "Compact design"
+    ],
+    specifications: {
+      brand: "PowerMax",
+      model: "PB20K",
+      capacity: "20000mAh",
+      ports: "USB-C, 2x USB-A",
+      warranty: "18 months"
+    },
+    rating: 4.6,
+    reviews: 167,
+    stock: 40,
+    images: [
+      "https://images.unsplash.com/photo-1609592424131-84e0772542b9",
+      "https://images.unsplash.com/photo-1618410320928-25228d811631",
+      "https://images.unsplash.com/photo-1618410319517-72a33dd14c44"
+    ]
+  },
+  {
+    id: "10",
+    name: "Smart Coffee Maker",
+    price: 199.99,
+    discount: 8,
+    category: "Appliances",
+    description: "Wi-Fi enabled smart coffee maker with scheduling and voice control.",
+    features: [
+      "Wi-Fi connectivity",
+      "Voice control",
+      "Scheduling",
+      "10-cup capacity",
+      "Keep warm function"
+    ],
+    specifications: {
+      brand: "SmartBrew",
+      model: "Connect X10",
+      capacity: "10 cups",
+      power: "1000W",
+      warranty: "2 years"
+    },
+    rating: 4.5,
+    reviews: 78,
+    stock: 15,
+    images: [
+      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085",
+      "https://images.unsplash.com/photo-1516224498413-69d4ea40c6d8",
+      "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd"
+    ]
   }
 ]
 

@@ -46,7 +46,14 @@ const ProductCard = ({ product }) => {
   const handleAddToCart = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    addItem(product)
+    
+    // Add product with processed price information
+    addItem({
+      ...product,
+      price: finalPrice,
+      originalPrice: product.price,
+      discountPercentage: discount
+    })
   }
 
   const handleToggleFavorite = (e) => {

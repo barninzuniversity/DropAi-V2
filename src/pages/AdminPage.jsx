@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import AdminNavigation from '../components/admin/AdminNavigation';
 import { useProducts } from '../context/ProductContext'; // Import the ProductContext hook
+import useAuthStore from '../store/authStore'
 
 // ===================== MOCK DATA =====================
 const mockOrders = [

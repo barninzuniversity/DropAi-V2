@@ -39,11 +39,6 @@ const HomePage = () => {
     return `$${price.toFixed(2)}`
   }
 
-  // Calculate discounted price
-  const getDiscountedPrice = (price, discount) => {
-    return price - (price * (discount / 100))
-  }
-
   const features = [
     {
       icon: <FiTrendingUp className="text-3xl text-primary-500" />,
@@ -230,7 +225,6 @@ const HomePage = () => {
                         alt={product.name}
                         className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
                       />
-                      {/* Removed discount/sale sign as requested */}
                       <div className="absolute inset-0 bg-black bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                         <Link 
                           to={`/products/${product.id}`}
@@ -254,20 +248,9 @@ const HomePage = () => {
                       </div>
                       <h3 className="text-lg font-bold mb-1 text-gray-800">{product.name}</h3>
                       <div className="flex items-center">
-                        {product.discount > 0 ? (
-                          <>
-                            <span className="text-lg font-bold text-primary-600">
-                              {formatPrice(getDiscountedPrice(product.price, product.discount))}
-                            </span>
-                            <span className="text-sm text-gray-500 line-through ml-2">
-                              {formatPrice(product.price)}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-lg font-bold text-primary-600">
-                            {formatPrice(product.price)}
-                          </span>
-                        )}
+                        <span className="text-lg font-bold text-primary-600">
+                          {formatPrice(product.price)}
+                        </span>
                       </div>
                     </div>
                   </motion.div>

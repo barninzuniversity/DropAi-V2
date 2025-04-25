@@ -2,13 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { FiUser, FiMail, FiLock, FiAlertCircle } from 'react-icons/fi'
-
-// Context
-import { useAuth } from '../context/AuthContext'
+import { toast } from 'react-hot-toast'
+import useAuthStore from '../store/authStore'
 
 const RegisterPage = () => {
   const navigate = useNavigate()
-  const { register, loading } = useAuth()
+  const { register, loading } = useAuthStore()
   
   const [formData, setFormData] = useState({
     name: '',
@@ -69,7 +68,7 @@ const RegisterPage = () => {
     try {
       const success = await register(formData.email, formData.password, formData.name)
       if (success) {
-        navigate('/account')
+        navigate('/profile')
       }
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.')

@@ -3,15 +3,15 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FiShoppingCart, FiTrash2, FiPlus, FiMinus, FiArrowRight, FiArrowLeft } from 'react-icons/fi'
 
-// Context
-import { useCart } from '../context/CartContext'
-import { useAuth } from '../context/AuthContext'
+// Store
+import useCartStore from '../store/cartStore'
+import useAuthStore from '../store/authStore'
 import useNotificationStore from '../store/notificationStore'
 import { formatPrice } from '../utils/priceFormatter'
 
 const CartPage = ({ products, updateProductStock }) => {
-  const { items, removeItem, updateQuantity, clearCart, total, isEmpty } = useCart()
-  const { isAuthenticated } = useAuth()
+  const { items, removeItem, updateQuantity, clearCart, getCartTotal, getItemCount } = useCartStore()
+  const { isAuthenticated } = useAuthStore()
   const { addNotification } = useNotificationStore()
   const [isLoading, setIsLoading] = useState(true)
   const [removingItemId, setRemovingItemId] = useState(null)
@@ -21,6 +21,13 @@ const CartPage = ({ products, updateProductStock }) => {
   const queryParams = new URLSearchParams(location.search)
   const orderConfirmed = queryParams.get('orderConfirmed') === 'true'
   const [isCompletingOrder, setIsCompletingOrder] = useState(false)
+
+  // Calculate cart totals
+  const subtotal = getCartTotal()
+  const itemCount = getItemCount()
+  const isEmpty = itemCount === 0
+  const shipping = !isEmpty ? 7 : 0 // Flat 7 TND shipping fee if cart has items
+  const orderTotal = subtotal + shipping
 
   useEffect(() => {
     // Check for order completion in session storage
@@ -90,13 +97,16 @@ const CartPage = ({ products, updateProductStock }) => {
   
   // Handle proceeding to checkout
   const handleProceedToCheckout = () => {
+    console.log('Proceeding to checkout...');
+    
     // Check if user is authenticated
     if (!isAuthenticated) {
+      console.log('User not authenticated, redirecting to login');
       addNotification({
         type: 'error',
         message: 'Please log in to checkout'
       })
-      navigate('/login')
+      navigate('/login', { state: { from: '/checkout' } })
       return
     }
     
@@ -105,6 +115,7 @@ const CartPage = ({ products, updateProductStock }) => {
       const product = products.find(p => p.id === item.id)
       return !product || product.stock < item.quantity
     })) {
+      console.log('Some items are out of stock');
       addNotification({
         type: 'error',
         message: 'Some items in your cart are out of stock or have insufficient quantity.'
@@ -116,13 +127,9 @@ const CartPage = ({ products, updateProductStock }) => {
     sessionStorage.setItem('orderItems', JSON.stringify(items))
     
     // Continue to checkout
+    console.log('Navigating to checkout page');
     navigate('/checkout')
   }
-
-  // Calculate shipping and total
-  const subtotal = total // Total from cart context
-  const shipping = !isEmpty ? 7 : 0 // Flat 7 TND shipping fee if cart has items
-  const orderTotal = subtotal + shipping
 
   if (isLoading || isCompletingOrder) {
     return (

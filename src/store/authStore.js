@@ -6,13 +6,20 @@ const useAuthStore = create(
     (set, get) => ({
       user: null,
       isAuthenticated: false,
-      isLoading: false,
+      isLoading: true, // Start with loading true
       error: null,
+      
+      // Initialize the store
+      init: () => {
+        set({ isLoading: false })
+      },
       
       // Check if current user is admin
       isAdmin: () => {
         const user = get().user
-        return user && user.role === 'admin'
+        console.log('Checking admin status for user:', user)
+        // Only allow admin@drop.ai to be admin
+        return user && user.email === 'admin@drop.ai' && user.role === 'admin'
       },
       
       // Login user
@@ -30,7 +37,8 @@ const useAuthStore = create(
           }
           
           // Check if this is the admin account
-          const isAdminAccount = email.toLowerCase() === 'admin@dropai.com'
+          const isAdminAccount = email.toLowerCase() === 'admin@drop.ai'
+          console.log('Is admin account:', isAdminAccount, 'Email:', email)
           
           // Mock user data
           const userData = {
@@ -40,7 +48,18 @@ const useAuthStore = create(
             role: isAdminAccount ? 'admin' : 'customer',
             avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=256&q=80',
             joinDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+            // Add default empty arrays for orders and wishlist
+            orders: [],
+            wishlist: [],
+            // Add default preferences
+            preferences: {
+              categories: [],
+              priceRange: [0, 1000],
+              brands: []
+            }
           }
+          
+          console.log('Login successful:', userData)
           
           set({ 
             user: userData,
@@ -53,7 +72,9 @@ const useAuthStore = create(
         } catch (error) {
           set({ 
             isLoading: false, 
-            error: error.message || 'Failed to login' 
+            error: error.message || 'Failed to login',
+            isAuthenticated: false,
+            user: null
           })
           throw error
         }
@@ -77,7 +98,8 @@ const useAuthStore = create(
           }
           
           // Check if this is the admin account
-          const isAdminAccount = email.toLowerCase() === 'admin@dropai.com'
+          const isAdminAccount = email.toLowerCase() === 'admin@drop.ai'
+          console.log('Is admin account:', isAdminAccount, 'Email:', email)
           
           // Mock user data
           const userData = {
@@ -87,7 +109,19 @@ const useAuthStore = create(
             role: isAdminAccount ? 'admin' : 'customer',
             avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=256&q=80',
             joinDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+            // Add default empty arrays for orders and wishlist
+            orders: [],
+            wishlist: [],
+            // Add default preferences
+            preferences: {
+              categories: [],
+              priceRange: [0, 1000],
+              brands: []
+            }
           }
+          
+          // Log the user data for debugging
+          console.log('Registration successful:', userData)
           
           set({ 
             user: userData,
@@ -100,7 +134,9 @@ const useAuthStore = create(
         } catch (error) {
           set({ 
             isLoading: false, 
-            error: error.message || 'Failed to register' 
+            error: error.message || 'Failed to register',
+            isAuthenticated: false,
+            user: null
           })
           throw error
         }
@@ -108,6 +144,7 @@ const useAuthStore = create(
       
       // Logout user
       logout: () => {
+        console.log('Logging out user')
         set({ 
           user: null,
           isAuthenticated: false,
@@ -120,11 +157,24 @@ const useAuthStore = create(
         set({ isLoading: true, error: null })
         try {
           // In a real app, this would be an API call
-          // Simulating API call with timeout
           await new Promise(resolve => setTimeout(resolve, 1000))
           
           const currentUser = get().user
-          const updatedUser = { ...currentUser, ...userData }
+          if (!currentUser) {
+            throw new Error('No user logged in')
+          }
+          
+          const updatedUser = { 
+            ...currentUser, 
+            ...userData,
+            // Preserve arrays and objects if not provided in update
+            orders: userData.orders || currentUser.orders || [],
+            wishlist: userData.wishlist || currentUser.wishlist || [],
+            preferences: {
+              ...currentUser.preferences,
+              ...(userData.preferences || {})
+            }
+          }
           
           // Validate critical fields
           if (userData.email && !userData.email.includes('@')) {
@@ -200,6 +250,12 @@ const useAuthStore = create(
     }),
     {
       name: 'auth-storage', // unique name for localStorage
+      onRehydrateStorage: () => (state) => {
+        // When the store is rehydrated from storage, initialize it
+        if (state) {
+          state.init()
+        }
+      }
     }
   )
 )

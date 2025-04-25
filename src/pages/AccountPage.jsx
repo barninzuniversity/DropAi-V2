@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { FiUser, FiPackage, FiHeart, FiSettings, FiLogOut, FiEdit, FiCpu } from 'react-icons/fi'
+import { toast } from 'react-hot-toast'
 
 // Components
 import ProductRecommendations from '../components/products/ProductRecommendations'
@@ -18,70 +19,61 @@ const AccountPage = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [userData, setUserData] = useState(null)
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false)
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+  })
   
   // Refs for scroll animations
   const [headerRef, headerInView] = useInView({ threshold: 0.1, triggerOnce: true })
   const [contentRef, contentInView] = useInView({ threshold: 0.1, triggerOnce: true })
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!isAuthenticated) {
-      navigate('/login')
-      return
-    }
-    
-    // Load user data
-    const timer = setTimeout(() => {
-      // If we have user data from auth store, use it as base
-      const baseUserData = user || {
-        name: 'Alex Johnson',
-        email: 'alex.johnson@example.com',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=256&q=80',
-        joinDate: 'August 2023',
+    const initializeUserData = () => {
+      if (!isAuthenticated || !user) {
+        navigate('/login')
+        return
       }
-      
-      // Merge with mock data for demo purposes
-      setUserData({
-        ...baseUserData,
-        orders: [
-          {
-            id: 'ORD-1234',
-            date: '2023-10-15',
-            total: 129.99,
-            status: 'Delivered',
-            items: [
-              { id: 1, name: 'Premium Wireless Earbuds', price: 129.99, quantity: 1 }
-            ]
-          },
-          {
-            id: 'ORD-1235',
-            date: '2023-09-28',
-            total: 89.99,
-            status: 'Delivered',
-            items: [
-              { id: 2, name: 'Smart Fitness Tracker Watch', price: 89.99, quantity: 1 }
-            ]
-          }
-        ],
-        wishlist: [
-          { id: 3, name: 'Portable Bluetooth Speaker', price: 59.99, image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80' },
-          { id: 4, name: 'Ultra-Slim Laptop Stand', price: 49.99, image: 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80' }
-        ],
-        preferences: {
-          categories: ['Electronics', 'Fitness'],
-          priceRange: [0, 200],
-          brands: ['SoundCore', 'FitTech']
-        }
-      })
-      setIsLoading(false)
-    }, 1000)
 
-    return () => clearTimeout(timer)
+      // Initialize form data with user info
+      setFormData({
+        name: user?.name || '',
+        email: user?.email || '',
+        phone: user?.phone || '',
+        address: user?.address || '',
+      })
+
+      // Set initial user data with safe defaults
+      const initialUserData = {
+        ...user,
+        orders: user?.orders || [],
+        wishlist: user?.wishlist || [],
+        preferences: {
+          categories: user?.preferences?.categories || [],
+          priceRange: user?.preferences?.priceRange || [0, 1000],
+          brands: user?.preferences?.brands || []
+        }
+      }
+
+      setUserData(initialUserData)
+      setIsLoading(false)
+    }
+
+    // Initialize data
+    initializeUserData()
+
+    return () => {
+      // Cleanup
+      setUserData(null)
+      setIsLoading(true)
+    }
   }, [isAuthenticated, navigate, user])
 
   // Format price with currency symbol
   const formatPrice = (price) => {
-    return `$${price.toFixed(2)}`
+    return `$${Number(price).toFixed(2)}`
   }
 
   // Format date to readable format
@@ -98,7 +90,11 @@ const AccountPage = () => {
     { id: 'settings', label: 'Settings', icon: <FiSettings /> }
   ]
 
-  if (isLoading) {
+  const handleCloseEditProfileModal = () => {
+    setIsEditProfileModalOpen(false)
+  }
+
+  if (isLoading || !userData) {
     return (
       <div className="pt-24 pb-16 container">
         <div className="flex justify-center items-center h-96">
@@ -106,10 +102,6 @@ const AccountPage = () => {
         </div>
       </div>
     )
-  }
-
-  const handleCloseEditProfileModal = () => {
-    setIsEditProfileModalOpen(false)
   }
 
   return (
@@ -129,14 +121,14 @@ const AccountPage = () => {
               whileHover={{ scale: 1.05 }}
             >
               <img 
-                src={userData.avatar} 
-                alt={userData.name} 
+                src={userData?.avatar || 'https://via.placeholder.com/150?text=Avatar'} 
+                alt={userData?.name || 'User'} 
                 className="w-full h-full object-cover"
               />
             </motion.div>
             <div className="text-center md:text-left">
-              <h1 className="text-3xl font-bold mb-2">{userData.name}</h1>
-              <p className="text-gray-600">Member since {userData.joinDate}</p>
+              <h1 className="text-3xl font-bold mb-2">{userData?.name || 'User'}</h1>
+              <p className="text-gray-600">Member since {userData?.joinDate || 'N/A'}</p>
             </div>
           </div>
         </motion.div>
@@ -164,7 +156,10 @@ const AccountPage = () => {
                   ))}
                   <li>
                     <button
-                      onClick={() => logout()}
+                      onClick={() => {
+                        logout()
+                        navigate('/')
+                      }}
                       className="w-full flex items-center gap-3 px-6 py-4 text-left text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       <FiLogOut />
@@ -203,21 +198,29 @@ const AccountPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <h3 className="text-gray-500 text-sm mb-1">Full Name</h3>
-                      <p className="font-medium">{userData.name}</p>
+                      <p className="font-medium">{formData.name || 'Not set'}</p>
                     </div>
                     <div>
                       <h3 className="text-gray-500 text-sm mb-1">Email Address</h3>
-                      <p className="font-medium">{userData.email}</p>
+                      <p className="font-medium">{formData.email || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-gray-500 text-sm mb-1">Phone</h3>
+                      <p className="font-medium">{formData.phone || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-gray-500 text-sm mb-1">Address</h3>
+                      <p className="font-medium">{formData.address || 'Not set'}</p>
                     </div>
                     <div>
                       <h3 className="text-gray-500 text-sm mb-1">Member Since</h3>
-                      <p className="font-medium">{userData.joinDate}</p>
+                      <p className="font-medium">{userData?.joinDate || 'Not available'}</p>
                     </div>
                   </div>
                   
                   <div className="mt-12">
                     <h2 className="text-xl font-bold mb-6">Personalized For You</h2>
-                    <ProductRecommendations userPreferences={userData.preferences} />
+                    <ProductRecommendations userPreferences={userData?.preferences} />
                   </div>
                 </div>
               )}
@@ -227,7 +230,7 @@ const AccountPage = () => {
                 <div>
                   <h2 className="text-2xl font-bold mb-6">Order History</h2>
                   
-                  {userData.orders.length === 0 ? (
+                  {!userData?.orders?.length ? (
                     <div className="text-center py-12 bg-gray-50 rounded-lg">
                       <FiPackage className="text-4xl text-gray-400 mx-auto mb-4" />
                       <h3 className="text-xl font-bold mb-2">No orders yet</h3>
@@ -299,7 +302,7 @@ const AccountPage = () => {
                 <div>
                   <h2 className="text-2xl font-bold mb-6">My Wishlist</h2>
                   
-                  {userData.wishlist.length === 0 ? (
+                  {!userData?.wishlist?.length ? (
                     <div className="text-center py-12 bg-gray-50 rounded-lg">
                       <FiHeart className="text-4xl text-gray-400 mx-auto mb-4" />
                       <h3 className="text-xl font-bold mb-2">Your wishlist is empty</h3>
@@ -363,7 +366,7 @@ const AccountPage = () => {
                     <div>
                       <h3 className="text-lg font-bold mb-4">Favorite Categories</h3>
                       <div className="flex flex-wrap gap-2">
-                        {userData.preferences.categories.map((category) => (
+                        {userData?.preferences?.categories?.map((category) => (
                           <span key={category} className="px-4 py-2 bg-primary-50 text-primary-700 rounded-full">
                             {category}
                           </span>
@@ -381,22 +384,22 @@ const AccountPage = () => {
                           <div 
                             className="absolute h-full bg-primary-500 rounded-full" 
                             style={{ 
-                              left: `${(userData.preferences.priceRange[0] / 1000) * 100}%`, 
-                              right: `${100 - (userData.preferences.priceRange[1] / 1000) * 100}%` 
+                              left: `${((userData?.preferences?.priceRange?.[0] || 0) / 1000) * 100}%`, 
+                              right: `${100 - ((userData?.preferences?.priceRange?.[1] || 1000) / 1000) * 100}%` 
                             }}
                           ></div>
                           <div 
                             className="absolute w-4 h-4 bg-white border-2 border-primary-500 rounded-full top-1/2 transform -translate-y-1/2 -translate-x-1/2"
-                            style={{ left: `${(userData.preferences.priceRange[0] / 1000) * 100}%` }}
+                            style={{ left: `${((userData?.preferences?.priceRange?.[0] || 0) / 1000) * 100}%` }}
                           ></div>
                           <div 
                             className="absolute w-4 h-4 bg-white border-2 border-primary-500 rounded-full top-1/2 transform -translate-y-1/2 -translate-x-1/2"
-                            style={{ left: `${(userData.preferences.priceRange[1] / 1000) * 100}%` }}
+                            style={{ left: `${((userData?.preferences?.priceRange?.[1] || 1000) / 1000) * 100}%` }}
                           ></div>
                         </div>
                         <div className="flex justify-between text-sm text-gray-600">
-                          <span>{formatPrice(userData.preferences.priceRange[0])}</span>
-                          <span>{formatPrice(userData.preferences.priceRange[1])}</span>
+                          <span>{formatPrice(userData?.preferences?.priceRange?.[0] || 0)}</span>
+                          <span>{formatPrice(userData?.preferences?.priceRange?.[1] || 1000)}</span>
                         </div>
                       </div>
                     </div>
@@ -404,7 +407,7 @@ const AccountPage = () => {
                     <div>
                       <h3 className="text-lg font-bold mb-4">Preferred Brands</h3>
                       <div className="flex flex-wrap gap-2">
-                        {userData.preferences.brands.map((brand) => (
+                        {userData?.preferences?.brands?.map((brand) => (
                           <span key={brand} className="px-4 py-2 bg-primary-50 text-primary-700 rounded-full">
                             {brand}
                           </span>
@@ -487,7 +490,8 @@ const AccountPage = () => {
       {/* Edit Profile Modal */}
       <EditProfileModal 
         isOpen={isEditProfileModalOpen} 
-        onClose={handleCloseEditProfileModal} 
+        onClose={handleCloseEditProfileModal}
+        userData={userData}
       />
     </div>
   )

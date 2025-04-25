@@ -55,6 +55,7 @@ const useCartStore = create(
         
         return true
       },
+      
       // Remove an item from the cart
       removeItem: (productId) => {
         const { items } = get()
@@ -114,6 +115,7 @@ const useCartStore = create(
       
       // Clear the cart
       clearCart: () => set({ items: [] }),
+      
       // Get total number of items in cart
       getItemCount: () => {
         const { items } = get()
@@ -151,6 +153,8 @@ const useCartStore = create(
         set({ isCheckingOut: true, checkoutError: null });
         
         try {
+          console.log('Starting checkout process with items:', items);
+          
           // Format ordered items for inventory processing
           const orderedItems = items.map(item => ({
             id: item.id,
@@ -162,6 +166,7 @@ const useCartStore = create(
           const deductionResult = inventoryStore.bulkDeductFromStock(orderedItems);
           
           if (!deductionResult.success) {
+            console.error('Inventory deduction failed:', deductionResult);
             set({ 
               isCheckingOut: false, 
               checkoutError: {
@@ -182,6 +187,8 @@ const useCartStore = create(
           
           // Clear cart after successful order
           set({ items: [], isCheckingOut: false });
+          
+          console.log('Checkout completed successfully with order ID:', orderId);
           
           return { 
             success: true, 

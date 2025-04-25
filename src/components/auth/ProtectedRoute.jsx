@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import useAuthStore from '../../store/authStore'
 
 /**
@@ -6,17 +6,21 @@ import useAuthStore from '../../store/authStore'
  * If not authenticated or doesn't have the required role, redirects to login
  */
 const ProtectedRoute = ({ element, requiredRole }) => {
-  const { isAuthenticated, user } = useAuthStore()
+  const { isAuthenticated, isAdmin } = useAuthStore()
+  const location = useLocation()
   
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    // Save the attempted URL for redirecting after login
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
   
-  // Add null check for user object
-  if (requiredRole && (!user || user.role !== requiredRole)) {
+  // If admin role is required, check if user is admin
+  if (requiredRole === 'admin' && !isAdmin()) {
+    console.log('Access denied: User is not an admin')
     return <Navigate to="/" replace />
   }
   
   return element
 }
+
 export default ProtectedRoute

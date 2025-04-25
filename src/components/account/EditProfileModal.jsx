@@ -16,6 +16,8 @@ const EditProfileModal = ({ isOpen, onClose }) => {
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [customImage, setCustomImage] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState('')
   
   // Initialize form with user data when modal opens
   useEffect(() => {
@@ -25,12 +27,40 @@ const EditProfileModal = ({ isOpen, onClose }) => {
         email: user.email || '',
         avatar: user.avatar || ''
       })
+      setPreviewUrl(user.avatar || '')
     }
   }, [user, isOpen])
   
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      // Validate file type
+      if (!file.type.match('image.*')) {
+        setError('Please select an image file (png, jpg, jpeg)')
+        return
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size should be less than 5MB')
+        return
+      }
+      
+      setCustomImage(file)
+      setError('')
+      
+      // Create preview URL
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setPreviewUrl(e.target.result)
+      }
+      reader.readAsDataURL(file)
+    }
   }
   
   const handleSubmit = async (e) => {
@@ -44,9 +74,24 @@ const EditProfileModal = ({ isOpen, onClose }) => {
         throw new Error('Name and email are required')
       }
       
-      await updateProfile(formData)
-      setIsSubmitting(false)
-      onClose()
+      // If there's a custom image, convert it to base64
+      if (customImage) {
+        const reader = new FileReader()
+        reader.onload = async (e) => {
+          const base64Image = e.target.result
+          await updateProfile({
+            ...formData,
+            avatar: base64Image
+          })
+          setIsSubmitting(false)
+          onClose()
+        }
+        reader.readAsDataURL(customImage)
+      } else {
+        await updateProfile(formData)
+        setIsSubmitting(false)
+        onClose()
+      }
     } catch (err) {
       setError(err.message || 'Failed to update profile')
       setIsSubmitting(false)
@@ -114,7 +159,11 @@ const EditProfileModal = ({ isOpen, onClose }) => {
                         className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${
                           formData.avatar === avatar ? 'border-primary-500 shadow-md scale-110' : 'border-gray-200'
                         }`}
-                        onClick={() => setFormData(prev => ({ ...prev, avatar }))}
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, avatar }))
+                          setPreviewUrl(avatar)
+                          setCustomImage(null)
+                        }}
                       >
                         <img 
                           src={avatar} 
@@ -124,12 +173,40 @@ const EditProfileModal = ({ isOpen, onClose }) => {
                       </button>
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    className="flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium"
-                  >
-                    <FiUpload className="mr-1" /> Upload custom image (coming soon)
-                  </button>
+                  
+                  {/* Custom Image Upload */}
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Upload Custom Image
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
+                        <img 
+                          src={previewUrl || 'https://via.placeholder.com/150?text=Upload+Image'} 
+                          alt="Profile preview" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          id="custom-image-upload"
+                        />
+                        <label
+                          htmlFor="custom-image-upload"
+                          className="btn btn-outline flex items-center gap-2 cursor-pointer"
+                        >
+                          <FiUpload size={16} /> Choose Image
+                        </label>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Max size: 5MB. Supported formats: JPG, PNG
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
                 {/* Name Field */}

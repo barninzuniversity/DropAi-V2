@@ -1,339 +1,274 @@
 import { useState, useEffect } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiShoppingCart, FiUser, FiMenu, FiX, FiSearch, FiLogIn, FiUserPlus } from 'react-icons/fi'
+import { 
+  FiShoppingCart, 
+  FiUser, 
+  FiMenu, 
+  FiX, 
+  FiSearch, 
+  FiLogIn, 
+  FiLogOut,
+  FiUserPlus, 
+  FiShield,
+  FiSettings
+} from 'react-icons/fi'
+import useAuthStore from '../../store/authStore'
+import useCartStore from '../../store/cartStore'
 
 // Components
 import EnhancedSearch from '../search/EnhancedSearch'
 
-// Store
-import useCartStore from '../../store/cartStore'
-import useAuthStore from '../../store/authStore'
-
-const Header = ({ isScrolled }) => {
+const Header = () => {
+  const navigate = useNavigate()
+  const { user, isAuthenticated, isAdmin, logout } = useAuthStore()
+  const cartItems = useCartStore(state => state.items)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const { items } = useCartStore()
-  const { isAuthenticated, user, isAdmin } = useAuthStore()
-  
-  // Close menu when clicking outside
+  const [isScrolled, setIsScrolled] = useState(false)
+  const itemCount = cartItems.reduce((total, item) => total + item.quantity, 0)
+  const isAdminUser = isAdmin()
+
+  // Handle scroll effect
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (isMenuOpen && !e.target.closest('.mobile-menu') && !e.target.closest('.menu-button')) {
-        setIsMenuOpen(false)
-      }
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 0)
     }
-    
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isMenuOpen])
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
-  // Disable body scroll when menu is open
+  // Debug auth state on render
   useEffect(() => {
-    if (isMenuOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'auto'
-    }
-    
-    return () => {
-      document.body.style.overflow = 'auto'
-    }
-  }, [isMenuOpen])
+    console.log('Header auth state:', { 
+      user, 
+      isAuthenticated, 
+      isAdminUser,
+      email: user?.email,
+      role: user?.role
+    })
+  }, [user, isAdminUser, isAuthenticated])
 
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
-  const toggleSearch = () => setIsSearchOpen(!isSearchOpen)
+  const handleLogout = () => {
+    logout()
+    setIsMenuOpen(false)
+    navigate('/')
+  }
 
-  // Filter admin link based on user role
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen)
+  }
+
+  // Navigation links including conditional admin link
   const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Products', path: '/products' },
-    { name: 'About', path: '/about' },
-    { name: 'Contact', path: '/contact' },
-    ...(isAdmin() ? [{ name: 'Admin', path: '/admin' }] : []),
+    { to: '/', label: 'Home' },
+    { to: '/products', label: 'Products' },
+    { to: '/about', label: 'About' },
+    { to: '/contact', label: 'Contact' },
+    ...(isAdminUser ? [{ to: '/admin', label: 'Admin', icon: <FiShield /> }] : [])
   ]
 
   return (
-    <header 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-3' : 'bg-transparent py-5'}`}
-    >
-      <div className="container flex items-center justify-between">
-        {/* Logo */}
-        <Link to="/" className="relative z-10">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex items-center"
-          >
-            <span className="text-2xl font-bold font-heading gradient-text">DropAI</span>
-          </motion.div>
-        </Link>
+    <header className={`fixed top-0 left-0 right-0 z-50 bg-white transition-shadow duration-300 ${isScrolled ? 'shadow-md' : ''}`}>
+      <div className="container py-4">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="text-2xl font-bold text-primary-600">
+            DropAi
+          </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:block">
-          <ul className="flex space-x-8">
-            {navLinks.map((link, index) => (
-              <motion.li 
-                key={link.name}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-6">
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="text-gray-700 hover:text-primary-600 transition-colors duration-300"
               >
-                <NavLink 
-                  to={link.path}
-                  className={({ isActive }) => 
-                    `text-base font-medium relative transition-colors duration-300 ${isActive ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'}`
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {link.name}
-                      {isActive && (
-                        <motion.span 
-                          layoutId="underline"
-                          className="absolute left-0 top-full h-0.5 w-full bg-primary-600"
-                        />
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              </motion.li>
-            ))}
-          </ul>
-        </nav>
-
-        {/* Right Side Icons */}
-        <div className="flex items-center space-x-3">
-          {/* Search Icon */}
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={toggleSearch}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-300"
-            aria-label="Search"
-          >
-            <FiSearch className="text-xl" />
-          </motion.button>
-
-          {/* User Account or Auth Links */}
-          {isAuthenticated ? (
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Link 
-                to="/account" 
-                className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-gray-100 transition-colors duration-300"
-                aria-label="Account"
-              >
-                {user?.avatar ? (
-                  <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white">
-                    <img 
-                      src={user.avatar} 
-                      alt={user.name || 'Profile'} 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <FiUser className="text-xl" />
-                )}
-                <span className="hidden md:block text-sm font-medium">{user?.name?.split(' ')[0] || 'Profile'}</span>
+                {link.icon && <span className="mr-1">{link.icon}</span>}
+                {link.label}
               </Link>
-            </motion.div>
-          ) : (
-            <div className="hidden md:flex items-center space-x-2">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Link 
-                  to="/login" 
-                  className="flex items-center gap-1 px-3 py-2 rounded-md bg-primary-50 hover:bg-primary-100 text-primary-600 transition-colors duration-300"
-                >
-                  <FiLogIn className="text-sm" />
-                  <span className="text-sm font-medium">Login</span>
-                </Link>
-              </motion.div>
-              
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Link 
-                  to="/register" 
-                  className="flex items-center gap-1 px-3 py-2 rounded-md bg-primary-600 hover:bg-primary-700 text-white transition-colors duration-300"
-                >
-                  <FiUserPlus className="text-sm" />
-                  <span className="text-sm font-medium">Register</span>
-                </Link>
-              </motion.div>
-            </div>
-          )}
+            ))}
+          </nav>
 
-          {/* Login Icon for Mobile when not authenticated */}
-          {!isAuthenticated && (
+          {/* Right Section */}
+          <div className="flex items-center space-x-4">
+            {/* Cart Icon */}
             <motion.div
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              className="md:hidden"
+              className="relative"
             >
               <Link 
-                to="/login" 
+                to="/cart" 
                 className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-300"
-                aria-label="Login"
+                aria-label="Shopping cart"
               >
-                <FiLogIn className="text-xl" />
+                <FiShoppingCart className="text-xl" />
+                {itemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-accent-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                    {itemCount}
+                  </span>
+                )}
               </Link>
             </motion.div>
-          )}
 
-          {/* Shopping Cart */}
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            className="relative"
-          >
-            <Link 
-              to="/cart" 
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-300"
-              aria-label="Shopping Cart"
-            >
-              <FiShoppingCart className="text-xl" />
-              {items.length > 0 && (
-                <motion.span 
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 bg-accent-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+            {/* User Menu - Desktop */}
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-4">
+                {isAdminUser && (
+                  <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Link 
+                      to="/admin" 
+                      className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-300 text-primary-600"
+                      aria-label="Admin Dashboard"
+                    >
+                      <FiShield className="text-xl" />
+                    </Link>
+                  </motion.div>
+                )}
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  {items.length}
-                </motion.span>
-              )}
-            </Link>
-          </motion.div>
+                  <Link 
+                    to="/profile" 
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-300"
+                    aria-label="My Account"
+                  >
+                    <FiUser className="text-xl" />
+                  </Link>
+                </motion.div>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleLogout}
+                  className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-300"
+                  aria-label="Logout"
+                >
+                  <FiLogOut className="text-xl" />
+                </motion.button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Link 
+                    to="/login" 
+                    className="flex items-center gap-1 px-3 py-2 rounded-md bg-primary-50 hover:bg-primary-100 text-primary-600 transition-colors duration-300"
+                  >
+                    <FiLogIn className="text-sm" />
+                    <span className="text-sm font-medium">Login</span>
+                  </Link>
+                </motion.div>
+                
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Link 
+                    to="/register" 
+                    className="flex items-center gap-1 px-3 py-2 rounded-md bg-primary-600 hover:bg-primary-700 text-white transition-colors duration-300"
+                  >
+                    <FiUserPlus className="text-sm" />
+                    <span className="text-sm font-medium">Register</span>
+                  </Link>
+                </motion.div>
+              </div>
+            )}
+          </div>
 
           {/* Mobile Menu Button */}
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+          <button 
+            className="md:hidden btn-icon"
             onClick={toggleMenu}
-            className="p-2 md:hidden menu-button rounded-full hover:bg-gray-100 transition-colors duration-300"
-            aria-label={isMenuOpen ? 'Close Menu' : 'Open Menu'}
+            aria-label="Toggle menu"
           >
-            {isMenuOpen ? <FiX className="text-xl" /> : <FiMenu className="text-xl" />}
-          </motion.button>
+            {isMenuOpen ? <FiX /> : <FiMenu />}
+          </button>
         </div>
-      </div>
 
-      {/* AI-Enhanced Search Overlay */}
-      <AnimatePresence>
-        {isSearchOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="absolute top-full left-0 right-0 bg-white shadow-md p-4 z-50"
-          >
-            <div className="container">
-              <div className="relative">
-                <EnhancedSearch />
-                <button 
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-primary-600"
-                  onClick={toggleSearch}
-                >
-                  <FiX />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, x: '100%' }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-0 bg-white z-50 mobile-menu md:hidden pt-20"
-          >
-            <div className="container h-full flex flex-col">
-              <nav className="py-5">
-                <ul className="space-y-6">
-                  {navLinks.map((link, index) => (
-                    <motion.li 
-                      key={link.name}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                    >
-                      <NavLink 
-                        to={link.path}
-                        onClick={() => setIsMenuOpen(false)}
-                        className={({ isActive }) => 
-                          `text-2xl font-medium block transition-colors duration-300 ${isActive ? 'text-primary-600' : 'text-gray-800 hover:text-primary-600'}`
-                        }
-                      >
-                        {link.name}
-                      </NavLink>
-                    </motion.li>
-                  ))}
-                </ul>
-              </nav>
-              
-              <div className="mt-auto pb-8">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="space-y-4"
-                >
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="md:hidden bg-white border-t mt-4"
+            >
+              <nav className="py-4">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-300"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {link.icon && <span className="mr-2">{link.icon}</span>}
+                    {link.label}
+                  </Link>
+                ))}
+                
+                {/* Mobile Menu User Section */}
+                <div className="mt-4 pt-4 border-t">
                   {isAuthenticated ? (
-                    <Link 
-                      to="/account"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="btn btn-outline w-full flex items-center justify-center gap-2"
-                    >
-                      <FiUser />
-                      <span>My Account</span>
-                    </Link>
+                    <>
+                      <Link 
+                        to="/profile"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-300"
+                      >
+                        <FiUser className="inline-block mr-2" /> My Account
+                      </Link>
+                      {isAdminUser && (
+                        <Link 
+                          to="/admin"
+                          onClick={() => setIsMenuOpen(false)}
+                          className="block px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-300"
+                        >
+                          <FiShield className="inline-block mr-2" /> Admin Dashboard
+                        </Link>
+                      )}
+                      <button 
+                        onClick={() => {
+                          handleLogout();
+                          setIsMenuOpen(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-300"
+                      >
+                        <FiLogOut className="inline-block mr-2" /> Logout
+                      </button>
+                    </>
                   ) : (
                     <>
                       <Link 
                         to="/login"
                         onClick={() => setIsMenuOpen(false)}
-                        className="btn btn-outline w-full flex items-center justify-center gap-2"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-300"
                       >
-                        <FiLogIn />
-                        <span>Login</span>
+                        <FiLogIn className="inline-block mr-2" /> Login
                       </Link>
                       <Link 
                         to="/register"
                         onClick={() => setIsMenuOpen(false)}
-                        className="btn btn-primary w-full flex items-center justify-center gap-2"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors duration-300"
                       >
-                        <FiUserPlus />
-                        <span>Register</span>
+                        <FiUserPlus className="inline-block mr-2" /> Register
                       </Link>
                     </>
                   )}
-                  <Link 
-                    to="/cart"
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`btn ${isAuthenticated ? 'btn-primary' : 'btn-outline'} w-full flex items-center justify-center gap-2`}
-                  >
-                    <FiShoppingCart />
-                    <span>View Cart {items.length > 0 && `(${items.length})`}</span>
-                  </Link>
-                </motion.div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                </div>
+              </nav>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </header>
   )
 }

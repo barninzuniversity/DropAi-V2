@@ -1,68 +1,96 @@
-import React from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AnimatePresence } from 'framer-motion';
-
-// Pages
-import HomePage from './pages/HomePage';
-import ProductsPage from './pages/ProductsPage';
-import ProductDetailPage from './pages/ProductDetailPage';
-import CartPage from './pages/CartPage';
-import CheckoutPage from './pages/CheckoutPage';
-import LoginPage from './pages/LoginPage';
-import AdminPage from './pages/AdminPage';
-import NotFoundPage from './pages/NotFoundPage';
-import ContactPage from './pages/ContactPage';
-import AboutPage from './pages/AboutPage';
-import AccountPage from './pages/AccountPage';
 
 // Components
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import ErrorBoundary from './components/utils/ErrorBoundary';
 import ScrollToTop from './components/utils/ScrollToTop';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import AdminSetup from './components/admin/AdminSetup';
 
 // Context Providers
-import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { ProductProvider } from './context/ProductContext';
 
+// Store
+import useAuthStore from './store/authStore';
+
+// Lazy-loaded Pages
+const HomePage = lazy(() => import('./pages/HomePage'));
+const ProductsPage = lazy(() => import('./pages/ProductsPage'));
+const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage'));
+const CartPage = lazy(() => import('./pages/CartPage'));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const AccountPage = lazy(() => import('./pages/AccountPage'));
+
 function App() {
+  // Initialize auth store
+  const initAuth = useAuthStore(state => state.init);
+  
+  useEffect(() => {
+    // Initialize auth store when app loads
+    initAuth();
+  }, [initAuth]);
+
   return (
-    <ErrorBoundary showDetails={false}>
-      <ProductProvider>
-        <AuthProvider>
+    <BrowserRouter>
+      <ErrorBoundary showDetails={false}>
+        <ProductProvider>
           <CartProvider>
-          <BrowserRouter>
             <ScrollToTop />
             <div className="flex flex-col min-h-screen">
               <Header />
               <main className="flex-grow">
-                <AnimatePresence mode="wait">
-                  <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/products" element={<ProductsPage />} />
-                  <Route path="/products/:id" element={<ProductDetailPage />} />
-                  <Route path="/cart" element={<CartPage />} />
-                  <Route path="/checkout" element={<CheckoutPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/contact" element={<ContactPage />} />
-                  <Route path="/about" element={<AboutPage />} />
-                  <Route path="/account" element={<AccountPage />} />
-                  <Route path="/profile" element={<AccountPage />} />
-                  <Route 
-                    path="/admin/*" 
-                    element={
-                      <ErrorBoundary showDetails={true}>
-                        <AdminPage />
-                      </ErrorBoundary>
-                    } 
-                  />
-                  <Route path="*" element={<NotFoundPage />} />
-                  </Routes>
-                </AnimatePresence>
+                <Suspense fallback={
+                  <div className="flex justify-center items-center h-screen">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+                  </div>
+                }>
+                  <AnimatePresence mode="wait">
+                    <Routes>
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/products" element={<ProductsPage />} />
+                      <Route path="/products/:id" element={<ProductDetailPage />} />
+                      <Route path="/cart" element={<CartPage />} />
+                      <Route 
+                        path="/checkout" 
+                        element={<ProtectedRoute element={<CheckoutPage />} />} 
+                      />
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/register" element={<RegisterPage />} />
+                      <Route path="/contact" element={<ContactPage />} />
+                      <Route path="/about" element={<AboutPage />} />
+                      <Route 
+                        path="/profile" 
+                        element={<ProtectedRoute element={<AccountPage />} />} 
+                      />
+                      <Route 
+                        path="/admin/*" 
+                        element={
+                          <ErrorBoundary showDetails={true}>
+                            <ProtectedRoute 
+                              element={<AdminPage />} 
+                              requiredRole="admin"
+                            />
+                          </ErrorBoundary>
+                        } 
+                      />
+                      <Route path="*" element={<NotFoundPage />} />
+                    </Routes>
+                  </AnimatePresence>
+                </Suspense>
               </main>
               <Footer />
+              <AdminSetup />
             </div>
 
             {/* Toast notifications */}
@@ -91,11 +119,10 @@ function App() {
                 },
               }}
             />
-          </BrowserRouter>
           </CartProvider>
-        </AuthProvider>
-      </ProductProvider>
-    </ErrorBoundary>
+        </ProductProvider>
+      </ErrorBoundary>
+    </BrowserRouter>
   );
 }
 
