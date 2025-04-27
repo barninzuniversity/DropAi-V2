@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { FiShoppingCart, FiStar, FiHeart } from 'react-icons/fi'
+import { FiShoppingCart, FiStar, FiHeart, FiPlus, FiMinus } from 'react-icons/fi'
+import { toast } from 'react-hot-toast'
 
 // Store
 import useCartStore from '../../store/cartStore'
@@ -9,6 +10,8 @@ import useCartStore from '../../store/cartStore'
 const ProductCard = ({ product }) => {
   const [isHovered, setIsHovered] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [quantity, setQuantity] = useState(1)
+  const [isAdding, setIsAdding] = useState(false)
   const { addItem } = useCartStore()
 
   // Helper to determine if product has active discount
@@ -46,14 +49,25 @@ const ProductCard = ({ product }) => {
   const handleAddToCart = (e) => {
     e.preventDefault()
     e.stopPropagation()
+    setIsAdding(true)
     
-    // Add product with processed price information
-    addItem({
-      ...product,
-      price: finalPrice,
-      originalPrice: product.price,
-      discountPercentage: discount
-    })
+    try {
+      // Add product with processed price information
+      addItem({
+        ...product,
+        price: finalPrice,
+        originalPrice: product.price,
+        discountPercentage: discount,
+        quantity: quantity
+      })
+      toast.success(`${product.name} added to cart!`)
+    } catch (error) {
+      console.error('Error adding item to cart:', error)
+      toast.error('Failed to add item to cart')
+    } finally {
+      setIsAdding(false)
+      setQuantity(1) // Reset quantity after adding
+    }
   }
 
   const handleToggleFavorite = (e) => {
@@ -102,14 +116,6 @@ const ProductCard = ({ product }) => {
             >
               <FiHeart className={isFavorite ? 'fill-current' : ''} />
             </motion.button>
-            <motion.button
-              onClick={handleAddToCart}
-              className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center shadow-lg"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <FiShoppingCart />
-            </motion.button>
           </motion.div>
         </div>
         
@@ -134,21 +140,76 @@ const ProductCard = ({ product }) => {
             {product.description}
           </p>
           
-          <div className="mt-auto flex items-center">
-            {hasDiscount ? (
-              <>
+          <div className="mt-auto">
+            <div className="flex items-center mb-3">
+              {hasDiscount ? (
+                <>
+                  <span className="text-lg font-bold text-primary-600">
+                    {formatPrice(finalPrice)}
+                  </span>
+                  <span className="text-sm text-gray-500 line-through ml-2">
+                    {formatPrice(product.price)}
+                  </span>
+                </>
+              ) : (
                 <span className="text-lg font-bold text-primary-600">
-                  {formatPrice(finalPrice)}
-                </span>
-                <span className="text-sm text-gray-500 line-through ml-2">
                   {formatPrice(product.price)}
                 </span>
-              </>
-            ) : (
-              <span className="text-lg font-bold text-primary-600">
-                {formatPrice(product.price)}
-              </span>
-            )}
+              )}
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex border rounded-md">
+                <button 
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setQuantity(q => Math.max(1, q - 1));
+                  }}
+                  className="px-2 py-1 text-gray-700 hover:bg-gray-100"
+                  disabled={quantity <= 1}
+                >
+                  <FiMinus size={14} />
+                </button>
+                <input 
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setQuantity(Math.max(1, parseInt(e.target.value) || 1));
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-12 text-center border-x border-gray-200 focus:outline-none"
+                />
+                <button 
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setQuantity(q => q + 1);
+                  }}
+                  className="px-2 py-1 text-gray-700 hover:bg-gray-100"
+                >
+                  <FiPlus size={14} />
+                </button>
+              </div>
+              
+              <button
+                onClick={handleAddToCart}
+                disabled={isAdding}
+                className="flex items-center justify-center bg-primary-600 hover:bg-primary-700 text-white py-1 px-3 rounded-md transition-colors"
+              >
+                {isAdding ? (
+                  <span className="inline-block w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin mr-1"></span>
+                ) : (
+                  <FiShoppingCart className="mr-1" size={16} />
+                )}
+                {isAdding ? 'Adding...' : 'Add'}
+              </button>
+            </div>
           </div>
         </div>
       </Link>

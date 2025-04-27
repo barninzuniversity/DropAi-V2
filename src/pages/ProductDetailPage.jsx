@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { FiArrowLeft, FiShoppingCart, FiStar, FiHeart, FiShare2, FiCheck, FiMinus, FiPlus, FiX } from 'react-icons/fi'
+import { FiArrowLeft, FiShoppingCart, FiStar, FiHeart, FiShare2, FiCheck, FiMinus, FiPlus } from 'react-icons/fi'
 import { toast } from 'react-hot-toast'
 
-// Context and hooks
-import { useCart } from '../context/CartContext'
-import { useProducts } from '../context/ProductContext' 
+// Store
+import useCartStore from '../store/cartStore'
+import { useProducts } from '../context/ProductContext'
 
 // Simplified product detail page with robust error handling
 const ProductDetailPage = () => {
   const { id } = useParams()
   const { products } = useProducts()
-  const { addItem } = useCart()
+  const { addItem } = useCartStore()
   
   // State
   const [product, setProduct] = useState(null)
@@ -44,47 +44,35 @@ const ProductDetailPage = () => {
     setLoading(false)
   }, [id, products])
   
-  // Simplified add to cart
+  const handleQuantityChange = (change) => {
+    const newQuantity = Math.max(1, quantity + change)
+    setQuantity(newQuantity)
+  }
+  
   const handleAddToCart = () => {
     if (!product) return
-    
-    // Create a clean product object with the most important properties
-    const productToAdd = {
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null),
-      quantity: quantity
-    }
-    
-    // Add discount information if available
-    if (product.discount) {
-      productToAdd.discount = product.discount
-    }
-    
-    addItem(productToAdd, quantity)
-    toast.success(`${product.name} added to cart!`)
-  }
-  
-  // Quantity handlers
-  const incrementQuantity = () => setQuantity(q => q + 1)
-  const decrementQuantity = () => setQuantity(q => Math.max(1, q - 1))
-  const handleQuantityChange = (e) => {
-    const val = parseInt(e.target.value, 10)
-    if (!isNaN(val) && val > 0) {
-      setQuantity(val)
+
+    const success = addItem(product, quantity)
+    if (success) {
+      toast.success(`Added ${quantity} ${quantity === 1 ? 'item' : 'items'} to cart`)
+    } else {
+      toast.error('Failed to add to cart. Item may be out of stock.')
     }
   }
   
-  // Toggle favorite status
-  const handleFavoriteToggle = () => setIsFavorite(!isFavorite)
+  const toggleFavorite = () => {
+    setIsFavorite(!isFavorite)
+    toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites')
+  }
   
   // Loading state
   if (loading) {
     return (
-      <div className="pt-24 pb-16 container">
-        <div className="flex justify-center items-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      <div className="pt-24 pb-16">
+        <div className="container">
+          <div className="flex justify-center items-center h-96">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+          </div>
         </div>
       </div>
     )
@@ -93,174 +81,122 @@ const ProductDetailPage = () => {
   // Product not found state
   if (!product) {
     return (
-      <div className="pt-24 pb-16 container">
-        <div className="text-center py-16">
-          <h2 className="text-2xl font-bold mb-4">Product Not Found</h2>
-          <p className="text-gray-600 mb-8">The product you're looking for doesn't exist or has been removed.</p>
-          <Link to="/products" className="btn btn-primary">
-            Browse Products
-          </Link>
+      <div className="pt-24 pb-16">
+        <div className="container">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
+            <p className="text-gray-600 mb-8">The product you're looking for doesn't exist.</p>
+            <Link to="/products" className="btn btn-primary">
+              Back to Products
+            </Link>
+          </div>
         </div>
       </div>
     )
   }
   
-  // Prepare images with fallbacks
-  const productImage = product.image || 
-    (product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/600x400?text=Product+Image')
-  
-  // Format price helper
-  const formatPrice = (price) => {
-    return `$${parseFloat(price).toFixed(2)}`
-  }
-  
-  // Calculate discounted price if applicable
-  const finalPrice = product.discount 
-    ? product.price * (1 - product.discount / 100) 
-    : product.price
-  
   return (
     <div className="pt-24 pb-16">
       <div className="container">
-        {/* Back to products link */}
-        <div className="mb-8">
-          <Link to="/products" className="flex items-center text-primary-600 hover:underline">
-            <FiArrowLeft className="mr-2" /> Back to Products
-          </Link>
-        </div>
+        {/* Back Button */}
+        <Link to="/products" className="inline-flex items-center text-primary-600 hover:text-primary-700 mb-8">
+          <FiArrowLeft className="mr-2" /> Back to Products
+        </Link>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Product Image */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
+            className="bg-white rounded-lg shadow-md overflow-hidden"
           >
-            <div className="relative overflow-hidden rounded-lg bg-gray-100 mb-4 h-96 flex items-center justify-center">
-              <img 
-                src={productImage} 
-                alt={product.name}
-                className="max-w-full max-h-full object-contain"
-                onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/600x400?text=Product+Image'
-                }}
-              />
-              
-              {product.discount > 0 && (
-                <div className="absolute top-4 right-4 bg-accent-500 text-white text-sm font-bold px-3 py-1 rounded-full">
-                  {product.discount}% OFF
-                </div>
-              )}
-            </div>
+            <img 
+              src={product.image} 
+              alt={product.name}
+              className="w-full h-full object-cover"
+            />
           </motion.div>
           
-          {/* Product Info */}
+          {/* Product Details */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
-            
-            {/* Price Display */}
-            <div className="mb-6">
-              {product.discount > 0 ? (
-                <div className="flex items-center">
-                  <span className="text-2xl font-bold text-primary-600 mr-2">
-                    {formatPrice(finalPrice)}
-                  </span>
-                  <span className="text-lg text-gray-500 line-through">
-                    {formatPrice(product.price)}
-                  </span>
-                </div>
-              ) : (
-                <span className="text-2xl font-bold text-primary-600">
-                  {formatPrice(product.price)}
-                </span>
-              )}
-            </div>
-            
-            {/* Description */}
-            <p className="text-gray-700 mb-6">
-              {product.description || "Experience this high-quality product designed for your needs."}
-            </p>
-            
-            {/* In Stock Status */}
-            <div className="flex items-center mb-6">
-              <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-              <span className="text-sm font-medium text-green-600">
-                In Stock
-              </span>
-            </div>
-            
-            {/* Quantity Selector */}
-            <div className="mb-6">
-              <label className="block text-gray-700 font-medium mb-2">Quantity</label>
-              <div className="flex items-center">
-                <button
-                  onClick={decrementQuantity}
-                  className="p-2 border border-gray-300 rounded-l-md hover:bg-gray-100"
-                  disabled={quantity <= 1}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h1 className="text-3xl font-bold">{product.name}</h1>
+                <button 
+                  onClick={toggleFavorite}
+                  className={`p-2 rounded-full ${
+                    isFavorite ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                  }`}
                 >
-                  <FiMinus />
-                </button>
-                <input
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={handleQuantityChange}
-                  className="w-16 text-center border-t border-b border-gray-300 py-2 focus:outline-none"
-                />
-                <button
-                  onClick={incrementQuantity}
-                  className="p-2 border border-gray-300 rounded-r-md hover:bg-gray-100"
-                >
-                  <FiPlus />
+                  <FiHeart className="text-xl" />
                 </button>
               </div>
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <motion.button
-                onClick={handleAddToCart}
-                className="flex-1 flex items-center justify-center gap-2 btn btn-primary"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <FiShoppingCart /> Add to Cart
-              </motion.button>
               
-              <motion.button
-                onClick={handleFavoriteToggle}
-                className={`btn flex-1 flex items-center justify-center gap-2 ${isFavorite ? 'bg-red-500 text-white hover:bg-red-600' : 'btn-outline'}`}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <FiHeart className={isFavorite ? 'fill-current' : ''} /> {isFavorite ? 'Saved' : 'Save'}
-              </motion.button>
-            </div>
-            
-            {/* Category & Details */}
-            <div>
-              <h3 className="text-lg font-bold mb-3">Product Details</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <dl className="space-y-2">
-                  <div className="grid grid-cols-2">
-                    <dt className="text-gray-600">Category</dt>
-                    <dd className="font-medium">{product.category || 'Uncategorized'}</dd>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <FiStar 
+                      key={i}
+                      className={i < 4 ? "text-yellow-400 fill-current" : "text-gray-300"}
+                    />
+                  ))}
+                </div>
+                <span className="text-gray-600">(4.0)</span>
+              </div>
+              
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-2">
+                  {product.price.toFixed(2)} TND
+                </h2>
+                {product.stock > 0 ? (
+                  <div className="flex items-center text-green-600">
+                    <FiCheck className="mr-2" />
+                    <span>In Stock ({product.stock} available)</span>
                   </div>
-                  
-                  {product.rating && (
-                    <div className="grid grid-cols-2">
-                      <dt className="text-gray-600">Rating</dt>
-                      <dd className="font-medium flex items-center">
-                        <span className="text-accent-500 mr-1">★</span> 
-                        {product.rating}
-                      </dd>
-                    </div>
-                  )}
-                </dl>
+                ) : (
+                  <div className="text-red-600">Out of Stock</div>
+                )}
+              </div>
+              
+              <div className="mb-6">
+                <h3 className="font-medium mb-2">Description</h3>
+                <p className="text-gray-600">
+                  {product.description || 'No description available.'}
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <button
+                    onClick={() => handleQuantityChange(-1)}
+                    className="p-2 rounded-md border hover:bg-gray-50"
+                    disabled={quantity <= 1}
+                  >
+                    <FiMinus />
+                  </button>
+                  <span className="w-16 text-center">{quantity}</span>
+                  <button
+                    onClick={() => handleQuantityChange(1)}
+                    className="p-2 rounded-md border hover:bg-gray-50"
+                    disabled={product.stock === 0 || quantity >= product.stock}
+                  >
+                    <FiPlus />
+                  </button>
+                </div>
+                
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product.stock === 0}
+                  className="btn btn-primary w-full flex items-center justify-center gap-2"
+                >
+                  <FiShoppingCart />
+                  Add to Cart
+                </button>
               </div>
             </div>
           </motion.div>

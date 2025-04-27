@@ -6,26 +6,48 @@ const useAuthStore = create(
     (set, get) => ({
       user: null,
       isAuthenticated: false,
-      isLoading: true, // Start with loading true
+      isLoading: true,
       error: null,
       
-      // Initialize the store
       init: () => {
-        set({ isLoading: false })
+        const state = get()
+        try {
+          // Verify stored data integrity
+          const storedData = localStorage.getItem('auth-storage')
+          if (storedData) {
+            const parsedData = JSON.parse(storedData)
+            if (!parsedData.state || !parsedData.state.user) {
+              // Invalid stored data, clear it
+              localStorage.removeItem('auth-storage')
+              set({ user: null, isAuthenticated: false, error: null })
+            }
+          }
+        } catch (error) {
+          console.error('Error initializing auth store:', error)
+          // Clear potentially corrupted data
+          localStorage.removeItem('auth-storage')
+          set({ user: null, isAuthenticated: false, error: null })
+        }
+        // Only set loading to false if we haven't already loaded user data
+        if (state.isLoading) {
+          set({ isLoading: false })
+        }
       },
       
-      // Check if current user is admin
       isAdmin: () => {
-        const user = get().user
-        console.log('Checking admin status for user:', user)
-        // Only allow admin@drop.ai to be admin
-        return user && user.email === 'admin@drop.ai' && user.role === 'admin'
+        const state = get()
+        const user = state.user
+        if (!user) return false
+        return user.email === 'admin@drop.ai' && user.role === 'admin'
       },
       
       // Login user
       login: async (email, password) => {
         set({ isLoading: true, error: null })
         try {
+          // Clear any existing auth data
+          localStorage.removeItem('auth-storage')
+          
           // In a real app, this would be an API call
           // Simulating API call with timeout
           await new Promise(resolve => setTimeout(resolve, 1000))
@@ -48,10 +70,8 @@ const useAuthStore = create(
             role: isAdminAccount ? 'admin' : 'customer',
             avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=256&q=80',
             joinDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
-            // Add default empty arrays for orders and wishlist
             orders: [],
             wishlist: [],
-            // Add default preferences
             preferences: {
               categories: [],
               priceRange: [0, 1000],
@@ -68,15 +88,16 @@ const useAuthStore = create(
             error: null
           })
           
-          return userData
+          return true
         } catch (error) {
+          console.error('Login error:', error)
           set({ 
             isLoading: false, 
             error: error.message || 'Failed to login',
             isAuthenticated: false,
             user: null
           })
-          throw error
+          return false
         }
       },
       

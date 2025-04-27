@@ -21,12 +21,20 @@ import EnhancedSearch from '../search/EnhancedSearch'
 
 const Header = () => {
   const navigate = useNavigate()
-  const { user, isAuthenticated, isAdmin, logout } = useAuthStore()
+  const { user, isAuthenticated, isLoading } = useAuthStore(state => ({
+    user: state.user,
+    isAuthenticated: state.isAuthenticated,
+    isLoading: state.isLoading
+  }))
+  const isAdmin = useAuthStore(state => state.isAdmin)
+  const logout = useAuthStore(state => state.logout)
   const cartItems = useCartStore(state => state.items)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const itemCount = cartItems.reduce((total, item) => total + item.quantity, 0)
-  const isAdminUser = isAdmin()
+
+  // Only compute admin status if we have a user and are not loading
+  const isAdminUser = !isLoading && user ? isAdmin() : false
 
   // Handle scroll effect
   useEffect(() => {
@@ -40,8 +48,8 @@ const Header = () => {
   // Debug auth state on render
   useEffect(() => {
     console.log('Header auth state:', { 
-      user, 
-      isAuthenticated, 
+      user: user, 
+      isAuthenticated: isAuthenticated, 
       isAdminUser,
       email: user?.email,
       role: user?.role

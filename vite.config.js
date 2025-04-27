@@ -9,12 +9,18 @@ export default defineConfig(({ command, mode }) => {
   
   return {
     plugins: [react()],
+    base: '/',
     server: {
       port: 3002,
-      open: true
+      open: true,
+      headers: {
+        'Service-Worker-Allowed': '/'
+      }
     },
     build: {
       outDir: 'dist',
+      assetsDir: 'assets',
+      emptyOutDir: true,
       minify: 'terser',
       sourcemap: false,
       // Optimize chunks for production
@@ -28,7 +34,8 @@ export default defineConfig(({ command, mode }) => {
         }
       },
       // Reduce chunk size warnings threshold
-      chunkSizeWarningLimit: 1000
+      chunkSizeWarningLimit: 1000,
+      assetsInclude: ['**/*.webmanifest']
     },
     // Define environment variables to be replaced in the client code
     define: {
